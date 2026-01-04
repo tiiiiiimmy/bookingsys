@@ -1,5 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+
 const HomePage = () => {
+  const navigate = useNavigate();
   return (
     <div className="home-page">
       <header className="hero">
@@ -17,7 +20,7 @@ const HomePage = () => {
             <li><strong>90分钟</strong> - $130<p>延长深度理疗</p></li>
           </ul>
           <div className="cta">
-            <button className="btn-primary">立即预约</button>
+            <button className="btn-primary" onClick={() => navigate('/booking')}>立即预约</button>
             <p className="note">预约需在线支付确认</p>
           </div>
         </div>
