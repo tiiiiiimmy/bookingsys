@@ -38,7 +38,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/admin', require('./routes/admin.routes'));
 app.use('/api/availability', require('./routes/availability.routes'));
-// app.use('/api/bookings', require('./routes/booking.routes'));
+app.use('/api/bookings', require('./routes/booking.routes'));
 
 // Stripe webhook route (must be before body parser)
 // app.use('/api/webhooks/stripe', require('./routes/webhook.routes'));
