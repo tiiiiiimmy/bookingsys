@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import HomePage from './pages/HomePage';
+import BookingPage from './pages/BookingPage';
+import BookingConfirmationPage from './pages/BookingConfirmationPage';
 import LoginPage from './pages/admin/LoginPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import AvailabilityPage from './pages/admin/AvailabilityPage';
@@ -15,6 +17,8 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<HomePage />} />
+          <Route path="/booking" element={<BookingPage />} />
+          <Route path="/booking/confirmation/:bookingId" element={<BookingConfirmationPage />} />
 
           {/* Admin routes */}
           <Route path="/admin/login" element={<LoginPage />} />
