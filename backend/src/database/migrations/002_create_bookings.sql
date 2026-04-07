@@ -2,10 +2,11 @@
 CREATE TABLE IF NOT EXISTS bookings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NOT NULL,
+    service_type_id INT NOT NULL,
     start_time DATETIME NOT NULL,
     end_time DATETIME NOT NULL,
     duration_minutes INT NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'pending_payment',
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
     price_cents INT NOT NULL,
     notes TEXT,
     cancellation_reason TEXT,
@@ -13,10 +14,12 @@ CREATE TABLE IF NOT EXISTS bookings (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_bookings_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_bookings_service_type FOREIGN KEY (service_type_id) REFERENCES service_types(id) ON DELETE RESTRICT,
     CONSTRAINT chk_duration CHECK (duration_minutes IN (30, 60, 90)),
-    CONSTRAINT chk_status CHECK (status IN ('pending_payment', 'confirmed', 'cancelled', 'completed')),
+    CONSTRAINT chk_status CHECK (status IN ('pending', 'confirmed', 'cancelled', 'completed', 'no_show')),
     INDEX idx_bookings_start_time (start_time),
     INDEX idx_bookings_customer_id (customer_id),
+    INDEX idx_bookings_service_type_id (service_type_id),
     INDEX idx_bookings_status (status),
     INDEX idx_bookings_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
