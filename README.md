@@ -29,7 +29,7 @@
 
 ## 技术栈
 
-- **后端**: Node.js + Express + MySQL
+- **后端**: .NET 10 + ASP.NET Core + MySQL
 - **前端**: React (Vite)
 - **支付**: Stripe
 - **认证**: JWT
@@ -38,16 +38,16 @@
 
 ```
 bookingsys/
-├── backend/          # Node.js API 服务器
-│   ├── src/
-│   │   ├── config/          # 数据库、Stripe 配置
-│   │   ├── controllers/     # 请求处理器
-│   │   ├── routes/          # API 路由
-│   │   ├── services/        # 业务逻辑
-│   │   ├── middleware/      # 认证、验证、错误处理
-│   │   ├── database/        # 迁移和种子数据
-│   │   └── server.js        # 服务器入口
-│   └── package.json
+├── backend/          # ASP.NET Core API 服务器
+│   ├── Controllers/       # API 控制器
+│   ├── Services/          # 业务逻辑
+│   ├── Models/            # 请求和响应模型
+│   ├── Middleware/        # 认证、错误处理
+│   ├── Database/          # MySQL 连接、迁移、种子
+│   ├── Configuration/     # .env 和配置读取
+│   ├── src/database/      # SQL 迁移和种子数据
+│   ├── BookingSystem.Api.csproj
+│   └── Program.cs
 │
 ├── frontend/         # React 前端应用
 │   ├── src/
@@ -66,8 +66,9 @@ bookingsys/
 
 ### 前置要求
 
-- Node.js 18+
-- MySQL 14+
+- .NET SDK 10.0
+- Node.js 18+（前端）
+- MySQL 8.0+
 - Stripe 账户（用于支付）
 
 ### 安装步骤
@@ -77,8 +78,8 @@ bookingsys/
 ```bash
 cd backend
 
-# 安装依赖
-npm install
+# 恢复 .NET 依赖
+dotnet restore BookingSystem.Api.csproj
 
 # 配置环境变量
 cp .env.example .env
@@ -90,13 +91,13 @@ CREATE DATABASE bookingsys CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 \q
 
 # 运行数据库迁移
-npm run migrate
+dotnet run --project BookingSystem.Api.csproj -- --migrate
 
 # 种子数据（创建服务类型、营业时间、管理员用户）
-npm run seed
+dotnet run --project BookingSystem.Api.csproj -- --seed
 
 # 启动后端服务器
-npm run dev
+dotnet watch run --project BookingSystem.Api.csproj
 ```
 
 后端将运行在 `http://localhost:5000`
@@ -130,7 +131,11 @@ npm run dev
 
 ```env
 # 数据库
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bookingsys
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=bookingsys
+DB_USER=root
+DB_PASSWORD=your_mysql_password
 
 # JWT 密钥（生产环境请更改！）
 JWT_SECRET=your-secret-key-change-in-production
@@ -159,7 +164,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 ## 开发进度
 
 ✅ **Phase 1: 基础架构（已完成）**
-- ✅ 后端 Express 服务器
+- ✅ 后端 ASP.NET Core 服务器
 - ✅ MySQL 数据库和迁移
 - ✅ 管理员认证 (JWT)
 - ✅ React 前端框架
@@ -225,7 +230,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 - 检查 CORS 设置
 
 ### 管理员无法登录
-- 确认已运行 `npm run seed`
+- 确认已运行 `dotnet run --project BookingSystem.Api.csproj -- --seed`
 - 使用默认凭据：`admin@massage.com` / `admin123`
 - 检查后端日志中的错误信息
 
