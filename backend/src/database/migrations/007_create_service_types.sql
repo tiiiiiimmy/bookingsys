@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS service_types (
     duration_minutes INT UNIQUE NOT NULL,
     price_cents INT NOT NULL,
     name VARCHAR(100) NOT NULL,
+    name_zh VARCHAR(100) NOT NULL,
     description TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
