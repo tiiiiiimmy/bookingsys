@@ -29,13 +29,13 @@ EXIT;
 cd /var/www/bookingsys/backend
 
 # 运行数据库迁移
-npm run migrate
+dotnet run --project BookingSystem.Api.csproj -- --migrate
 
 # 创建初始数据（管理员、服务类型、营业时间）
-npm run seed
+dotnet run --project BookingSystem.Api.csproj -- --seed
 
 # 启动开发服务器
-npm run dev
+dotnet watch run --project BookingSystem.Api.csproj
 ```
 
 **预期输出:**
@@ -128,7 +128,7 @@ server: { port: 3001 }
 
 ## 技术栈
 
-- ✅ Node.js + Express
+- ✅ .NET 10 + ASP.NET Core
 - ✅ **MySQL 8.0+** (已从 PostgreSQL 迁移)
 - ✅ React 19
 - ✅ React Router v7
