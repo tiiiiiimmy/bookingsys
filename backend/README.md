@@ -1,18 +1,18 @@
 # 按摩预约系统 - 后端 API
 
-基于 Node.js + Express 的后端服务器，使用 MySQL 数据库和 Stripe 支付集成。
+基于 .NET 10 + ASP.NET Core 的后端服务器，使用 MySQL 数据库和 Stripe 支付集成。
 
 ## 前置要求
 
-- Node.js 18+
+- .NET SDK 10.0
 - **MySQL 8.0+** (或 MariaDB 10.5+)
 - Stripe 账户（用于支付）
 
 ## 安装
 
-1. 安装依赖:
+1. 恢复 .NET 依赖:
 ```bash
-npm install
+dotnet restore BookingSystem.Api.csproj
 ```
 
 2. 配置环境变量:
@@ -35,12 +35,12 @@ EXIT;
 
 4. 运行数据库迁移:
 ```bash
-npm run migrate
+dotnet run --project BookingSystem.Api.csproj -- --migrate
 ```
 
 5. 种子数据:
 ```bash
-npm run seed
+dotnet run --project BookingSystem.Api.csproj -- --seed
 ```
 
 这将创建:
@@ -52,12 +52,12 @@ npm run seed
 
 开发模式（自动重载）:
 ```bash
-npm run dev
+dotnet watch run --project BookingSystem.Api.csproj
 ```
 
 生产模式:
 ```bash
-npm start
+dotnet run --no-launch-profile --project BookingSystem.Api.csproj
 ```
 
 服务器默认运行在 `http://localhost:5000`
@@ -125,19 +125,17 @@ ADMIN_PASSWORD=admin123
 
 ```
 backend/
-├── src/
-│   ├── config/           # 数据库、Stripe 配置
-│   ├── controllers/      # 请求处理器
-│   ├── database/         # 迁移和种子
-│   ├── middleware/       # 认证、验证、错误处理
-│   ├── models/           # 数据模型
-│   ├── routes/           # API 路由
-│   ├── services/         # 业务逻辑
-│   ├── utils/            # 工具函数和常量
-│   └── server.js         # Express 应用入口
+├── Controllers/          # API 控制器
+├── Services/             # 业务逻辑
+├── Models/               # 请求和响应模型
+├── Middleware/           # 错误处理等中间件
+├── Database/             # MySQL 连接、迁移、种子
+├── Configuration/        # .env 和配置读取
+├── src/database/         # SQL 迁移和种子文件
 ├── .env                  # 环境变量
 ├── .env.example          # 环境变量模板
-└── package.json
+├── BookingSystem.Api.csproj
+└── Program.cs            # ASP.NET Core 应用入口
 ```
 
 ## 开发进度
@@ -155,10 +153,10 @@ backend/
 ## 测试
 
 ```bash
-npm test
+dotnet build BookingSystem.Api.csproj
 ```
 
-（测试将在 Phase 7 添加）
+（当前以 `dotnet build` 验证为主）
 
 ## 安全注意事项
 
