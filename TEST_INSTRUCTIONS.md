@@ -24,11 +24,11 @@ EXIT;
 cd backend
 
 # 首次运行需要设置数据库
-npm run migrate  # 运行数据库迁移
-npm run seed     # 创建初始数据
+dotnet run --project BookingSystem.Api.csproj -- --migrate  # 运行数据库迁移
+dotnet run --project BookingSystem.Api.csproj -- --seed     # 创建初始数据
 
 # 启动服务器
-npm run dev
+dotnet watch run --project BookingSystem.Api.csproj
 ```
 
 **预期输出:**
