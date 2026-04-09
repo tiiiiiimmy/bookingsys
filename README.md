@@ -17,15 +17,16 @@
 **客户端功能:**
 - 浏览可用时间段（30/60/90分钟服务）
 - 无需注册即可预约
-- 在线支付确认预约
-- 接收预约确认
+- 创建待支付预约并通过 Stripe 完成支付
+- 查看预约确认页真实状态
+- 通过安全管理链接发起改期申请
 
 **管理员功能:**
-- 在自定义日历中查看所有预约
-- 管理预约（改期、取消）
+- 在后台列表中查看所有预约和详情
+- 管理预约（改期、取消、完成、未到店）
 - 设置可用时间（屏蔽不工作的日期）
-- 手动处理退款
 - 查看客户历史记录
+- 审核客户改期申请
 
 ## 技术栈
 
@@ -150,8 +151,10 @@ SMTP_HOST=smtp.gmail.com
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
 
-# 前端 URL
-FRONTEND_URL=http://localhost:3000
+# App / 前端
+APP_BASE_URL=http://localhost:3000
+SUPPORT_EMAIL=support@example.com
+FRONTEND_URLS=http://localhost:3000,http://localhost:3001
 ```
 
 ### 前端 (.env)
@@ -170,26 +173,44 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 - ✅ React 前端框架
 - ✅ 管理员登录页面和仪表板
 
-🔜 **接下来的步骤 (Phase 2-8):**
-- Phase 2: 可用时间管理
-- Phase 3: 客户预约流程
-- Phase 4: Stripe 支付集成
-- Phase 5: 管理员预约管理
-- Phase 6: 客户管理和邮件通知
-- Phase 7: 优化和生产准备
-- Phase 8: 部署
+✅ **Phase 2: 时间可用性管理（已完成）**
+- ✅ 营业时间管理
+- ✅ 屏蔽时间管理
+- ✅ 客户端可预约时间查询
 
-详细的实现计划请查看：[/root/.claude/plans/refactored-noodling-pearl.md](/root/.claude/plans/refactored-noodling-pearl.md)
+✅ **Phase 3-6: 准上线版主链路（已完成）**
+- ✅ 预约创建改为先支付后确认
+- ✅ Stripe PaymentIntent + Webhook 回写
+- ✅ 管理员预约列表、详情、状态更新、直接改期
+- ✅ 客户列表与详情
+- ✅ 客户改期申请与管理员审核
+- ✅ 基础邮件通知
 
 ## API 端点
 
 ### 公共端点（已实现）
 - `GET /health` - 健康检查
+- `GET /api/bookings/service-types`
+- `POST /api/bookings`
+- `GET /api/bookings/:id`
+- `GET /api/bookings/manage/:token`
+- `POST /api/bookings/manage/:token/reschedule-request`
+- `GET /api/availability/slots`
+- `POST /api/webhooks/stripe`
 
 ### 管理员端点（已实现）
 - `POST /api/admin/auth/login` - 管理员登录
 - `POST /api/admin/auth/refresh` - 刷新令牌
 - `GET /api/admin/auth/me` - 获取当前管理员信息
+- `GET /api/admin/dashboard/stats`
+- `GET /api/admin/bookings`
+- `GET /api/admin/bookings/:id`
+- `PATCH /api/admin/bookings/:id/status`
+- `POST /api/admin/bookings/:id/reschedule`
+- `GET /api/admin/customers`
+- `GET /api/admin/customers/:id`
+- `POST /api/admin/reschedule-requests/:id/approve`
+- `POST /api/admin/reschedule-requests/:id/reject`
 
 ## 数据库架构
 
@@ -242,4 +263,3 @@ ISC
 
 如有问题，请查看:
 - 后端 README: [backend/README.md](backend/README.md)
-- 实现计划: [/root/.claude/plans/refactored-noodling-pearl.md](/root/.claude/plans/refactored-noodling-pearl.md)

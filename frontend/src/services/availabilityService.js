@@ -1,25 +1,35 @@
 import api from './api';
 
 const availabilityService = {
-  // Get available slots for a date and duration
   getAvailableSlots: async (date, duration) => {
     const response = await api.get(`/availability/slots?date=${date}&duration=${duration}`);
     return response.data;
   },
+  getWeeklySlots: async (dates, duration = 30) => {
+    const responses = await Promise.all(
+      dates.map(async (date) => {
+        try {
+          const response = await api.get(`/availability/slots?date=${date}&duration=${duration}`);
+          return { date, ...(response.data.data || {}) };
+        } catch (error) {
+          return { date, slots: [], totalSlots: 0, error: error.response?.data?.error?.message || error.message };
+        }
+      })
+    );
 
-  // Get all business hours
+    return responses;
+  },
+
   getBusinessHours: async () => {
     const response = await api.get('/availability/business-hours');
     return response.data;
   },
 
-  // Update business hours (Admin)
   updateBusinessHours: async (dayOfWeek, hoursData) => {
     const response = await api.put(`/availability/admin/business-hours/${dayOfWeek}`, hoursData);
     return response.data;
   },
 
-  // Get availability blocks (Admin)
   getAvailabilityBlocks: async (startDate, endDate) => {
     let url = '/availability/admin/blocks';
     if (startDate && endDate) {
@@ -29,13 +39,11 @@ const availabilityService = {
     return response.data;
   },
 
-  // Create availability block (Admin)
   createAvailabilityBlock: async (blockData) => {
     const response = await api.post('/availability/admin/blocks', blockData);
     return response.data;
   },
 
-  // Delete availability block (Admin)
   deleteAvailabilityBlock: async (blockId) => {
     const response = await api.delete(`/availability/admin/blocks/${blockId}`);
     return response.data;

@@ -7,8 +7,7 @@ namespace BookingSystem.Backend.Services;
 
 public sealed class AvailabilityService
 {
-    private const int BufferMinutes = 15;
-    private static readonly int[] AllowedDurations = [30, 60, 90];
+    private const int SlotMinutes = 30;
 
     private readonly MySqlConnectionFactory _connectionFactory;
 
@@ -22,9 +21,9 @@ public sealed class AvailabilityService
         int durationMinutes,
         CancellationToken cancellationToken = default)
     {
-        if (!AllowedDurations.Contains(durationMinutes))
+        if (durationMinutes <= 0 || durationMinutes % SlotMinutes != 0)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Duration must be 30, 60, or 90");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Duration must be a positive multiple of 30 minutes");
         }
 
         if (requestedDate < DateOnly.FromDateTime(DateTime.Today))
@@ -308,9 +307,8 @@ public sealed class AvailabilityService
         while (current < businessEnd)
         {
             var slotEnd = current.AddMinutes(durationMinutes);
-            var slotEndWithBuffer = slotEnd.AddMinutes(BufferMinutes);
 
-            if (slotEndWithBuffer <= businessEnd)
+            if (slotEnd <= businessEnd)
             {
                 yield return new AvailableSlotDto
                 {
@@ -319,7 +317,7 @@ public sealed class AvailabilityService
                 };
             }
 
-            current = slotEndWithBuffer;
+            current = current.AddMinutes(SlotMinutes);
         }
     }
 
@@ -381,6 +379,11 @@ public sealed class AvailabilityService
             SELECT start_time, end_time
             FROM bookings
             WHERE status IN ('pending', 'confirmed')
+              AND (
+                    status <> 'pending'
+                    OR expires_at IS NULL
+                    OR expires_at > NOW()
+                  )
               AND start_time >= @dayStart
               AND start_time <= @dayEnd
             ORDER BY start_time;

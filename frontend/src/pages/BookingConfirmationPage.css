@@ -31,6 +31,10 @@
   animation: scaleIn 0.5s ease-out;
 }
 
+.pending-icon {
+  background: #ffb020;
+}
+
 @keyframes scaleIn {
   from {
     transform: scale(0);
@@ -104,6 +108,16 @@
   padding: 0.25rem 0.75rem;
   border-radius: 4px;
   font-size: 0.875rem;
+}
+
+.secondary-button {
+  background: #fff;
+  color: #667eea;
+  border: 1px solid #667eea;
+}
+
+.secondary-button:hover {
+  background: #eef2ff;
 }
 
 .customer-info p {

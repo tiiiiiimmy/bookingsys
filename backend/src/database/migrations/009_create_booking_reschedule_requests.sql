@@ -1,4 +1,4 @@
-CREATE TABLE booking_reschedule_requests (
+CREATE TABLE IF NOT EXISTS booking_reschedule_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
     requested_start_time DATETIME NOT NULL,

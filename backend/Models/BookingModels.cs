@@ -59,12 +59,20 @@ public sealed class CreateBookingRequest
     [Range(1, int.MaxValue)]
     public int ServiceTypeId { get; init; }
 
-    public DateTime StartTime { get; init; }
+    public DateTime? StartTime { get; init; }
 
-    public DateTime EndTime { get; init; }
+    public DateTime? EndTime { get; init; }
+
+    public List<BookingTimeRangeInputDto>? Slots { get; init; }
 
     [Required]
     public CustomerInputDto Customer { get; init; } = new();
+}
+
+public sealed class BookingTimeRangeInputDto
+{
+    public DateTime StartTime { get; init; }
+    public DateTime EndTime { get; init; }
 }
 
 public sealed class BookingDetailsDto

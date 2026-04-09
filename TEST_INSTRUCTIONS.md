@@ -23,6 +23,9 @@ EXIT;
 ```bash
 cd backend
 
+# 首次运行前复制环境变量模板
+cp .env.example .env
+
 # 首次运行需要设置数据库
 dotnet run --project BookingSystem.Api.csproj -- --migrate  # 运行数据库迁移
 dotnet run --project BookingSystem.Api.csproj -- --seed     # 创建初始数据
@@ -31,11 +34,12 @@ dotnet run --project BookingSystem.Api.csproj -- --seed     # 创建初始数据
 dotnet watch run --project BookingSystem.Api.csproj
 ```
 
-**预期输出:**
-```
-✓ MySQL database connection successful
-✓ Server running on port 5000 in development mode
-```
+如需完整测试支付链路，请在 `.env` 中配置：
+- `STRIPE_SECRET_KEY`
+- `STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `APP_BASE_URL`
+- `FRONTEND_URLS`
 
 ### 3. 启动前端服务器
 
@@ -48,9 +52,22 @@ npm run dev
 
 ### 4. 测试管理员登录
 
-- 访问: http://localhost:5173/admin/login
+- 访问: http://localhost:3000/admin/login
 - 邮箱: `admin@massage.com`
 - 密码: `admin123`
+
+### 5. 测试预约与支付链路
+
+- 访问: http://localhost:3000/booking
+- 选择服务、时间、填写客户信息
+- 进入 Stripe 支付步骤
+- 支付成功后检查确认页状态是否变为 `confirmed`
+
+### 6. 测试改期链路
+
+- 通过客户管理链接打开 `/booking/manage/:token`
+- 提交一条改期申请
+- 管理员到 `/admin/bookings` 批准或拒绝该申请
 
 ## 数据库变更说明
 

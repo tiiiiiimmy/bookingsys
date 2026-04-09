@@ -27,10 +27,10 @@ public sealed class BookingsController : ControllerBase
     public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest request, CancellationToken cancellationToken)
     {
         var result = await _bookingService.CreateBookingAsync(request, cancellationToken);
-        return StatusCode(StatusCodes.Status201Created, new ApiResponse<BookingDetailsDto>
+        return StatusCode(StatusCodes.Status201Created, new ApiResponse<CreateBookingPaymentResponseDto>
         {
             Data = result,
-            Message = "Booking created successfully",
+            Message = "Booking created and payment initialized",
         });
     }
 

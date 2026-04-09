@@ -81,11 +81,17 @@ JWT_REFRESH_SECRET=your-refresh-secret
 # Stripe
 STRIPE_SECRET_KEY=sk_test_your_key
 STRIPE_PUBLISHABLE_KEY=pk_test_your_key
+STRIPE_WEBHOOK_SECRET=whsec_your_key
 
 # 邮件（可选，用于开发）
 SMTP_HOST=smtp.gmail.com
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
+
+# App / 前端
+APP_BASE_URL=http://localhost:3000
+SUPPORT_EMAIL=support@example.com
+FRONTEND_URLS=http://localhost:3000,http://localhost:3001
 
 # 管理员用户（用于初始种子）
 ADMIN_EMAIL=admin@massage.com
@@ -96,13 +102,27 @@ ADMIN_PASSWORD=admin123
 
 ### 公共端点
 - `GET /health` - 健康检查
+- `GET /api/bookings/service-types`
+- `POST /api/bookings`
+- `GET /api/bookings/:id`
+- `GET /api/bookings/manage/:token`
+- `POST /api/bookings/manage/:token/reschedule-request`
+- `GET /api/availability/slots`
+- `POST /api/webhooks/stripe`
 
 ### 管理员端点
 - `POST /api/admin/auth/login` - 管理员登录
 - `POST /api/admin/auth/refresh` - 刷新令牌
 - `GET /api/admin/auth/me` - 获取当前管理员
-
-更多端点将在后续阶段添加。
+- `GET /api/admin/dashboard/stats`
+- `GET /api/admin/bookings`
+- `GET /api/admin/bookings/:id`
+- `PATCH /api/admin/bookings/:id/status`
+- `POST /api/admin/bookings/:id/reschedule`
+- `GET /api/admin/customers`
+- `GET /api/admin/customers/:id`
+- `POST /api/admin/reschedule-requests/:id/approve`
+- `POST /api/admin/reschedule-requests/:id/reject`
 
 ## 数据库架构
 
@@ -140,15 +160,15 @@ backend/
 
 ## 开发进度
 
-✅ **Phase 1: 基础架构（已完成）**
+✅ **Phase 1-6 准上线版（已完成）**
 - 后端结构
-- MySQL 数据库
+- MySQL 数据库和迁移
 - 管理员认证
-
-🔜 **下一步:**
-- 可用性管理 API
-- 客户预约流程
-- Stripe 支付集成
+- 客户预约与支付初始化
+- Stripe Webhook 回写
+- 管理员预约管理
+- 客户改期申请
+- 基础邮件通知
 
 ## 测试
 

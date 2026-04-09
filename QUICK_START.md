@@ -1,8 +1,13 @@
 # 快速启动指南
 
-## MySQL 数据库迁移完成！✅
+## 当前版本
 
-系统已从 PostgreSQL 成功迁移到 MySQL。
+当前仓库已完成：
+- .NET 10 + MySQL 8 后端
+- React/Vite 前端
+- Stripe 先支付后确认链路
+- 管理员预约/客户管理
+- 客户改期申请
 
 ## 启动步骤
 
@@ -28,6 +33,11 @@ EXIT;
 # 进入后端目录
 cd /var/www/bookingsys/backend
 
+# 复制环境变量模板
+cp .env.example .env
+# 至少配置 DB_*、JWT_*、FRONTEND_URLS
+# 如需完整支付演示，还要配置 Stripe 和 SMTP
+
 # 运行数据库迁移
 dotnet run --project BookingSystem.Api.csproj -- --migrate
 
@@ -38,11 +48,7 @@ dotnet run --project BookingSystem.Api.csproj -- --seed
 dotnet watch run --project BookingSystem.Api.csproj
 ```
 
-**预期输出:**
-```
-✓ MySQL database connection successful
-✓ Server running on port 5000 in development mode
-```
+后端默认运行在 `http://localhost:5000`
 
 ### 3. 启动前端
 
@@ -67,6 +73,8 @@ VITE v7.x.x ready in XXX ms
 
 - **客户主页**: http://localhost:3000/
 - **管理员登录**: http://localhost:3000/admin/login
+- **客户预约确认页**: http://localhost:3000/booking/confirmation/:bookingId
+- **客户预约管理页**: 通过邮件里的 `/booking/manage/:token` 链接访问
 
 ### 5. 管理员登录凭据
 
@@ -136,12 +144,9 @@ server: { port: 3001 }
 - ✅ Stripe (待配置)
 - ✅ JWT 认证
 
-## 下一步
+## 建议验证顺序
 
-系统已准备就绪！您可以：
-
-1. **测试当前功能**: 登录管理后台查看仪表板
-2. **继续开发**: Phase 2 - 时间可用性管理
-3. **配置 Stripe**: 添加真实的支付密钥
-
-祝开发顺利！🚀
+1. 管理员登录后台，确认仪表板、预约管理、客户管理可以打开
+2. 创建一条预约，确认能拿到 Stripe 支付页
+3. 通过 Stripe 测试卡完成支付，检查预约是否变为 `confirmed`
+4. 打开客户管理链接，提交一条改期申请，再到后台审核
