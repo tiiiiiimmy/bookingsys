@@ -59,6 +59,9 @@ public sealed class CreateBookingRequest
     [Range(1, int.MaxValue)]
     public int ServiceTypeId { get; init; }
 
+    [Range(1, int.MaxValue)]
+    public int TechnicianId { get; init; }
+
     public DateTime? StartTime { get; init; }
 
     public DateTime? EndTime { get; init; }
@@ -119,6 +122,12 @@ public sealed class BookingDetailsDto
     [JsonPropertyName("service_name")]
     public string ServiceName { get; init; } = string.Empty;
 
+    [JsonPropertyName("technician_id")]
+    public int? TechnicianId { get; init; }
+
+    [JsonPropertyName("technician_name")]
+    public string? TechnicianName { get; init; }
+
     [JsonPropertyName("duration_minutes")]
     public int DurationMinutes { get; init; }
 
@@ -133,6 +142,9 @@ public sealed class BookingDetailsDto
 
     [JsonPropertyName("payment_status")]
     public string? PaymentStatus { get; init; }
+
+    [JsonPropertyName("payment_source")]
+    public string? PaymentSource { get; init; }
 
     [JsonPropertyName("expires_at")]
     public DateTime? ExpiresAt { get; init; }
