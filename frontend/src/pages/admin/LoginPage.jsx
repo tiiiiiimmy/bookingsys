@@ -1,9 +1,12 @@
 import React from 'react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AdminLanguageSwitcher from '../../components/layout/AdminLanguageSwitcher';
+import useAdminLanguage from '../../hooks/useAdminLanguage';
 import { useAuth } from '../../hooks/useAuth';
 
 const LoginPage = () => {
+  const { language, setLanguage, t } = useAdminLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,7 +22,7 @@ const LoginPage = () => {
       await login(email, password);
       navigate('/admin/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error?.message || '登录失败');
+      setError(err.response?.data?.error?.message || t.login.failed);
     } finally {
       setLoading(false);
     }
@@ -28,23 +31,28 @@ const LoginPage = () => {
   return (
     <div className="login-page">
       <div className="login-container">
-        <h1>管理员登录</h1>
+        <div className="admin-login-header">
+          <h1>{t.login.title}</h1>
+          <div aria-label={t.common.languageSwitcher}>
+            <AdminLanguageSwitcher language={language} setLanguage={setLanguage} />
+          </div>
+        </div>
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label>邮箱</label>
+            <label>{t.login.email}</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} />
           </div>
           <div className="form-group">
-            <label>密码</label>
+            <label>{t.login.password}</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} />
           </div>
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? '登录中...' : '登录'}
+            {loading ? t.login.submitting : t.login.submit}
           </button>
         </form>
         <div className="login-footer">
-          <a href="/">← 返回主页</a>
+          <a href="/">{t.login.backHome}</a>
         </div>
       </div>
     </div>
