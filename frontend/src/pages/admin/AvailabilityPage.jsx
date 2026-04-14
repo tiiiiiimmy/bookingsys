@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import useAdminLanguage from '../../hooks/useAdminLanguage';
 import availabilityService from '../../services/availabilityService';
 
 const AvailabilityPage = () => {
+  const { t, formatDate, formatTime } = useAdminLanguage();
   const [businessHours, setBusinessHours] = useState([]);
   const [blocks, setBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,11 +15,9 @@ const AvailabilityPage = () => {
   });
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-
   useEffect(() => {
     loadData();
-  }, []);
+  }, [t.availability.loadErrorPrefix]);
 
   const loadData = async () => {
     try {
@@ -29,7 +29,7 @@ const AvailabilityPage = () => {
       setBusinessHours(hoursRes.data);
       setBlocks(blocksRes.data);
     } catch (error) {
-      setMessage({ type: 'error', text: '加载失败: ' + error.message });
+      setMessage({ type: 'error', text: t.availability.loadErrorPrefix + error.message });
     } finally {
       setLoading(false);
     }
@@ -43,10 +43,10 @@ const AvailabilityPage = () => {
         endTime: dayData.endTime,
         isActive: !currentIsActive,
       });
-      setMessage({ type: 'success', text: '营业时间已更新' });
+      setMessage({ type: 'success', text: t.availability.updateHoursSuccess });
       loadData();
     } catch (error) {
-      setMessage({ type: 'error', text: '更新失败: ' + error.message });
+      setMessage({ type: 'error', text: t.availability.updateFailedPrefix + error.message });
     }
   };
 
@@ -58,10 +58,10 @@ const AvailabilityPage = () => {
         endTime,
         isActive: dayData.isActive,
       });
-      setMessage({ type: 'success', text: '时间已更新' });
+      setMessage({ type: 'success', text: t.availability.updateTimeSuccess });
       loadData();
     } catch (error) {
-      setMessage({ type: 'error', text: '更新失败: ' + error.message });
+      setMessage({ type: 'error', text: t.availability.updateFailedPrefix + error.message });
     }
   };
 
@@ -74,52 +74,51 @@ const AvailabilityPage = () => {
         blockType: 'blocked',
         reason: newBlock.reason,
       });
-      setMessage({ type: 'success', text: '屏蔽时间已添加' });
+      setMessage({ type: 'success', text: t.availability.createBlockSuccess });
       setShowBlockModal(false);
       setNewBlock({ startTime: '', endTime: '', reason: '' });
       loadData();
     } catch (error) {
-      setMessage({ type: 'error', text: '添加失败: ' + error.message });
+      setMessage({ type: 'error', text: t.availability.createBlockFailedPrefix + error.message });
     }
   };
 
   const handleDeleteBlock = async (blockId) => {
-    if (!confirm('确定要删除这个屏蔽时间吗？')) return;
+    if (!window.confirm(t.availability.deleteConfirm)) return;
 
     try {
       await availabilityService.deleteAvailabilityBlock(blockId);
-      setMessage({ type: 'success', text: '屏蔽时间已删除' });
+      setMessage({ type: 'success', text: t.availability.deleteBlockSuccess });
       loadData();
     } catch (error) {
-      setMessage({ type: 'error', text: '删除失败: ' + error.message });
+      setMessage({ type: 'error', text: t.availability.deleteBlockFailedPrefix + error.message });
     }
   };
 
   if (loading) {
-    return <div className="loading-screen"><p>加载中...</p></div>;
+    return <div className="loading-screen"><p>{t.common.loading}</p></div>;
   }
 
   return (
     <div className="availability-page">
-      <h1>时间管理</h1>
+      <h1>{t.availability.title}</h1>
 
       {message.text && (
         <div className={`alert alert-${message.type}`}>
           {message.text}
-          <button onClick={() => setMessage({ type: '', text: '' })}>×</button>
+          <button aria-label={t.common.close} onClick={() => setMessage({ type: '', text: '' })}>×</button>
         </div>
       )}
 
-      {/* Business Hours Section */}
       <section className="section">
-        <h2>营业时间</h2>
+        <h2>{t.availability.businessHoursTitle}</h2>
         <div className="business-hours-list">
           {businessHours.map(day => (
             <div key={day.id} className="business-hours-item">
               <div className="day-info">
-                <strong>{dayNames[day.dayOfWeek]}</strong>
+                <strong>{t.availability.days[day.dayOfWeek]}</strong>
                 <span className={`status ${day.isActive ? 'active' : 'inactive'}`}>
-                  {day.isActive ? '营业' : '休息'}
+                  {day.isActive ? t.availability.statusOpen : t.availability.statusClosed}
                 </span>
               </div>
               <div className="hours-info">
@@ -141,24 +140,23 @@ const AvailabilityPage = () => {
                 className="btn-secondary"
                 onClick={() => handleToggleDay(day.dayOfWeek, day.isActive)}
               >
-                {day.isActive ? '设为休息' : '设为营业'}
+                {day.isActive ? t.availability.setClosed : t.availability.setOpen}
               </button>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Blocked Periods Section */}
       <section className="section">
         <div className="section-header">
-          <h2>屏蔽时间</h2>
+          <h2>{t.availability.blocksTitle}</h2>
           <button className="btn-primary" onClick={() => setShowBlockModal(true)}>
-            + 添加屏蔽时间
+            {t.availability.addBlock}
           </button>
         </div>
 
         {blocks.length === 0 ? (
-          <p className="empty-state">暂无屏蔽时间</p>
+          <p className="empty-state">{t.availability.emptyBlocks}</p>
         ) : (
           <div className="blocks-list">
             {blocks.map(block => (
@@ -166,13 +164,11 @@ const AvailabilityPage = () => {
                 <div className="block-info">
                   <div>
                     <strong>
-                      {new Date(block.startTime).toLocaleDateString('zh-CN')} {' '}
-                      {new Date(block.startTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                      {formatDate(block.startTime)} {formatTime(block.startTime)}
                     </strong>
                     {' - '}
                     <strong>
-                      {new Date(block.endTime).toLocaleDateString('zh-CN')} {' '}
-                      {new Date(block.endTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                      {formatDate(block.endTime)} {formatTime(block.endTime)}
                     </strong>
                   </div>
                   {block.reason && <p className="block-reason">{block.reason}</p>}
@@ -181,7 +177,7 @@ const AvailabilityPage = () => {
                   className="btn-danger"
                   onClick={() => handleDeleteBlock(block.id)}
                 >
-                  删除
+                  {t.availability.delete}
                 </button>
               </div>
             ))}
@@ -189,14 +185,13 @@ const AvailabilityPage = () => {
         )}
       </section>
 
-      {/* Add Block Modal */}
       {showBlockModal && (
         <div className="modal-overlay" onClick={() => setShowBlockModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>添加屏蔽时间</h3>
+            <h3>{t.availability.modal.title}</h3>
             <form onSubmit={handleCreateBlock}>
               <div className="form-group">
-                <label>开始时间</label>
+                <label>{t.availability.modal.startTime}</label>
                 <input
                   type="datetime-local"
                   value={newBlock.startTime}
@@ -205,7 +200,7 @@ const AvailabilityPage = () => {
                 />
               </div>
               <div className="form-group">
-                <label>结束时间</label>
+                <label>{t.availability.modal.endTime}</label>
                 <input
                   type="datetime-local"
                   value={newBlock.endTime}
@@ -214,20 +209,20 @@ const AvailabilityPage = () => {
                 />
               </div>
               <div className="form-group">
-                <label>原因（可选）</label>
+                <label>{t.availability.modal.reason}</label>
                 <input
                   type="text"
                   value={newBlock.reason}
                   onChange={(e) => setNewBlock({ ...newBlock, reason: e.target.value })}
-                  placeholder="例如：休假、临时有事"
+                  placeholder={t.availability.modal.reasonPlaceholder}
                 />
               </div>
               <div className="modal-buttons">
                 <button type="button" className="btn-secondary" onClick={() => setShowBlockModal(false)}>
-                  取消
+                  {t.availability.modal.cancel}
                 </button>
                 <button type="submit" className="btn-primary">
-                  添加
+                  {t.availability.modal.submit}
                 </button>
               </div>
             </form>
