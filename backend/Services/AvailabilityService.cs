@@ -19,6 +19,7 @@ public sealed class AvailabilityService
     public async Task<AvailableSlotsResultDto> GetAvailableSlotsAsync(
         DateOnly requestedDate,
         int durationMinutes,
+        int? technicianId = null,
         CancellationToken cancellationToken = default)
     {
         if (durationMinutes <= 0 || durationMinutes % SlotMinutes != 0)
@@ -49,7 +50,7 @@ public sealed class AvailabilityService
 
         await using var connection = await _connectionFactory.OpenConnectionAsync(cancellationToken);
         var blocks = await GetBlockedPeriodsAsync(connection, dayStart, dayEnd, cancellationToken);
-        var bookings = await GetBookingsAsync(connection, dayStart, dayEnd, cancellationToken);
+        var bookings = await GetBookingsAsync(connection, dayStart, dayEnd, technicianId, cancellationToken);
 
         var slots = GenerateTimeSlots(requestedDate, businessHours.StartTime, businessHours.EndTime, durationMinutes)
             .Where(slot => !HasConflict(slot.StartTime, slot.EndTime, bookings, blocks))
@@ -233,7 +234,11 @@ public sealed class AvailabilityService
         }
     }
 
-    public async Task<bool> IsSlotAvailableAsync(DateTime startTime, DateTime endTime, CancellationToken cancellationToken = default)
+    public async Task<bool> IsSlotAvailableAsync(
+        DateTime startTime,
+        DateTime endTime,
+        int? technicianId = null,
+        CancellationToken cancellationToken = default)
     {
         var businessHours = await GetBusinessHoursForDayAsync((int)DateOnly.FromDateTime(startTime).DayOfWeek, cancellationToken);
         if (businessHours is null)
@@ -251,7 +256,7 @@ public sealed class AvailabilityService
 
         await using var connection = await _connectionFactory.OpenConnectionAsync(cancellationToken);
         var blocks = await GetBlockedPeriodsAsync(connection, businessStart.Date, businessEnd, cancellationToken);
-        var bookings = await GetBookingsAsync(connection, businessStart.Date, businessEnd, cancellationToken);
+        var bookings = await GetBookingsAsync(connection, businessStart.Date, businessEnd, technicianId, cancellationToken);
 
         return !HasConflict(startTime, endTime, bookings, blocks);
     }
@@ -371,6 +376,7 @@ public sealed class AvailabilityService
         MySqlConnection connection,
         DateTime dayStart,
         DateTime dayEnd,
+        int? technicianId,
         CancellationToken cancellationToken)
     {
         var results = new List<(DateTime StartTime, DateTime EndTime)>();
@@ -378,7 +384,8 @@ public sealed class AvailabilityService
             """
             SELECT start_time, end_time
             FROM bookings
-            WHERE status IN ('pending', 'confirmed')
+            WHERE status IN ('pending', 'confirmed', 'arrived')
+              AND (@technicianId IS NULL OR technician_id = @technicianId)
               AND (
                     status <> 'pending'
                     OR expires_at IS NULL
@@ -391,6 +398,7 @@ public sealed class AvailabilityService
             connection);
         command.Parameters.AddWithValue("@dayStart", dayStart);
         command.Parameters.AddWithValue("@dayEnd", dayEnd);
+        command.Parameters.AddWithValue("@technicianId", technicianId);
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
