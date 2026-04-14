@@ -11,9 +11,12 @@ import BookingsPage from './pages/admin/BookingsPage';
 import AvailabilityPage from './pages/admin/AvailabilityPage';
 import CustomersPage from './pages/admin/CustomersPage';
 import AdminLayout from './components/layout/AdminLayout';
+import useAdminLanguage from './hooks/useAdminLanguage';
 import './App.css';
 
 function App() {
+  const { t } = useAdminLanguage();
+
   return (
     <AuthProvider>
       <Router>
@@ -35,7 +38,7 @@ function App() {
           </Route>
 
           {/* Fallback */}
-          <Route path="*" element={<div>页面未找到</div>} />
+          <Route path="*" element={<div>{t.fallback.notFound}</div>} />
         </Routes>
       </Router>
     </AuthProvider>
