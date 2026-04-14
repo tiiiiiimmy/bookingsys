@@ -1,10 +1,13 @@
+UPDATE service_types
+SET is_active = FALSE
+WHERE id IN (1, 2, 3, 4, 5);
+
 INSERT INTO service_types (id, duration_minutes, price_cents, name, name_zh, description, is_active)
 VALUES
-    (1, 30, 4500, 'Foot Massage', '脚部按摩', '以脚底和小腿放松为主，适合久站或久走后舒缓疲劳。', TRUE),
-    (2, 30, 5500, 'Back Massage', '背部按摩', '重点放松背部与肩颈区域，适合久坐和肌肉紧张人群。', TRUE),
-    (3, 30, 5000, 'Chest Massage', '胸前按摩', '以前侧胸肩区域放松与舒展为主，帮助打开上半身紧绷感。', TRUE),
-    (4, 30, 5200, 'Shoulder Massage', '肩颈按摩', '集中缓解肩颈酸痛和上背僵硬。', TRUE),
-    (5, 30, 4800, 'Leg Massage', '腿部按摩', '针对大腿与小腿放松，改善紧绷与沉重感。', TRUE)
+    (6, 60, 12000, 'Deep Tissue', '深層組織按摩', '針對肌肉底層壓力，緩解慢性疼痛與僵硬，重建身體活力。', TRUE),
+    (7, 60, 10000, 'Swedish Aroma', '瑞典香氛療癒', '結合天然精油，溫和手法促進血液循環，讓心靈重獲輕盈感。', TRUE),
+    (8, 90, 14500, 'Hot Stone', '熱石能量引導', '運用溫熱玄武岩石，溫暖身體核心，深度放鬆緊繃的韌帶與肌群。', TRUE),
+    (9, 30, 6500, 'Focus Release', '頭肩頸釋壓', '針對久坐族群設計，快速緩解頸椎壓力與偏頭痛不適感。', TRUE)
 ON DUPLICATE KEY UPDATE
     duration_minutes = VALUES(duration_minutes),
     price_cents = VALUES(price_cents),
