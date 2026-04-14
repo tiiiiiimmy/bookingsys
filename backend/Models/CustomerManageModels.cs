@@ -9,6 +9,8 @@ public sealed class ManagedBookingDto
     public string CustomerEmail { get; init; } = string.Empty;
     public string CustomerPhone { get; init; } = string.Empty;
     public string ServiceName { get; init; } = string.Empty;
+    public int? TechnicianId { get; init; }
+    public string? TechnicianName { get; init; }
     public int DurationMinutes { get; init; }
     public decimal Price { get; init; }
     public DateTime StartTime { get; init; }
