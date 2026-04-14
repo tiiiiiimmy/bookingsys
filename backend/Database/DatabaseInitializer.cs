@@ -17,6 +17,8 @@ public sealed class DatabaseInitializer
         ["009_create_booking_reschedule_requests.sql"] = 9,
         ["010_drop_service_type_duration_unique.sql"] = 10,
         ["011_add_booking_group_token.sql"] = 11,
+        ["012_add_arrived_booking_status.sql"] = 12,
+        ["013_add_technicians_and_manual_booking_fields.sql"] = 13,
     };
 
     private readonly MySqlConnectionFactory _connectionFactory;
