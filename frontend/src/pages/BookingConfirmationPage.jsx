@@ -1,27 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import PublicCard from '../components/public/PublicCard';
+import PublicPageShell from '../components/public/PublicPageShell';
+import PublicStatusChip from '../components/public/PublicStatusChip';
+import { BOOKING_FLOW_COPY, HOME_COPY } from '../content/publicSiteContent';
+import usePublicLanguage from '../hooks/usePublicLanguage';
 import bookingService from '../services/bookingService';
-import './BookingConfirmationPage.css';
 
-const statusText = {
-  pending: '待支付确认',
-  confirmed: '已确认',
-  cancelled: '已取消',
-  completed: '已完成',
-  no_show: '未到店',
-  expired: '已过期',
+const getToneForStatus = (status) => {
+  if (status === 'confirmed' || status === 'succeeded') {
+    return 'success';
+  }
+
+  if (status === 'pending') {
+    return 'warning';
+  }
+
+  if (status === 'failed' || status === 'cancelled' || status === 'expired') {
+    return 'danger';
+  }
+
+  return 'neutral';
 };
 
-const paymentStatusText = {
-  pending: '待支付',
-  failed: '支付失败',
-  succeeded: '支付成功',
-  refunded: '已退款',
-  partially_refunded: '部分退款',
-};
+const SummaryRow = ({ label, value }) => (
+  <div className="flex items-start justify-between gap-4 border-b border-outline-variant/60 py-3 text-sm last:border-b-0">
+    <span className="text-on-surface-variant">{label}</span>
+    <span className="text-right font-semibold text-on-surface">{value}</span>
+  </div>
+);
 
 const BookingConfirmationPage = () => {
   const { bookingId } = useParams();
+  const { language, setLanguage, t, formatMoney, formatDateTime } = usePublicLanguage(BOOKING_FLOW_COPY);
+  const homeCopy = HOME_COPY[language];
+  const confirmationCopy = t.confirmation;
+
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,16 +53,12 @@ const BookingConfirmationPage = () => {
 
         setBooking(response.data);
         setError('');
-
-        if (!loading) {
-          setLoading(false);
-        }
       } catch (err) {
         if (!isMounted) {
           return;
         }
 
-        setError(err.response?.data?.error?.message || '无法加载预约信息');
+        setError(err.response?.data?.error?.message || confirmationCopy.errors.loadBooking);
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -57,149 +67,160 @@ const BookingConfirmationPage = () => {
     };
 
     loadBooking();
-    intervalId = window.setInterval(() => {
-      loadBooking();
-    }, 5000);
+    intervalId = window.setInterval(loadBooking, 5000);
 
     return () => {
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [bookingId]);
-
-  const formatDateTime = (isoString) => {
-    const date = new Date(isoString);
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  }, [bookingId, confirmationCopy.errors.loadBooking]);
 
   const renderHeading = () => {
     if (!booking) {
-      return { title: '预约处理中', message: '我们正在同步支付和预约状态。' };
+      return { title: confirmationCopy.title.pending, message: confirmationCopy.message.syncing };
     }
 
     if (booking.status === 'confirmed') {
-      return { title: '预约已确认', message: '支付成功，预约已经正式确认。' };
+      return { title: confirmationCopy.title.confirmed, message: confirmationCopy.message.confirmed };
     }
 
     if (booking.status === 'expired') {
-      return { title: '预约已过期', message: '预约保留已超时，请重新选择时间并完成支付。' };
+      return { title: confirmationCopy.title.expired, message: confirmationCopy.message.expired };
     }
 
     if (booking.payment_status === 'failed') {
-      return { title: '支付未完成', message: '支付未成功完成，预约暂未确认。' };
+      return { title: confirmationCopy.title.paymentFailed, message: confirmationCopy.message.paymentFailed };
     }
 
     if (booking.status === 'cancelled') {
-      return { title: '预约已取消', message: '该预约目前处于已取消状态。' };
+      return { title: confirmationCopy.title.cancelled, message: confirmationCopy.message.cancelled };
     }
 
-    return { title: '预约处理中', message: '支付完成后，系统会自动确认预约。' };
+    return { title: confirmationCopy.title.pending, message: confirmationCopy.message.pending };
   };
-
-  if (loading) {
-    return (
-      <div className="confirmation-page">
-        <div className="confirmation-container">
-          <div className="loading">加载中...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !booking) {
-    return (
-      <div className="confirmation-page">
-        <div className="confirmation-container">
-          <div className="error-message">{error || '预约不存在'}</div>
-          <Link to="/" className="home-button">返回首页</Link>
-        </div>
-      </div>
-    );
-  }
 
   const heading = renderHeading();
 
   return (
-    <div className="confirmation-page">
-      <div className="confirmation-container">
-        <div className={`success-icon ${booking.status !== 'confirmed' ? 'pending-icon' : ''}`}>
-          {booking.status === 'confirmed' ? '✓' : '…'}
+    <PublicPageShell
+      language={language}
+      setLanguage={setLanguage}
+      brand={homeCopy.brand}
+      footer={t.footer}
+      navCopy={t.nav}
+    >
+      <section className="mx-auto max-w-6xl px-6 pb-20 pt-4 md:px-8">
+        <div className="mb-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <p className="mb-4 font-label text-xs uppercase tracking-[0.3em] text-tertiary">{confirmationCopy.heroTag}</p>
+            <h1 className="mb-4 font-headline text-5xl leading-tight text-on-surface md:text-6xl">{heading.title}</h1>
+            <p className="max-w-2xl text-lg leading-relaxed text-on-surface-variant">{heading.message}</p>
+          </div>
+
+          <PublicCard title={confirmationCopy.cards.nextSteps}>
+            <ul className="space-y-4 text-sm leading-relaxed text-on-surface-variant">
+              {confirmationCopy.steps.map((step) => (
+                <li key={step} className="flex gap-3">
+                  <span className="mt-1 h-2.5 w-2.5 rounded-full bg-primary" />
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ul>
+          </PublicCard>
         </div>
-        <h1>{heading.title}</h1>
-        <p className="success-message">{heading.message}</p>
 
-        <div className="booking-details">
-          <h2>预约详情</h2>
+        {loading ? (
+          <PublicCard>
+            <p className="text-sm text-on-surface-variant">{confirmationCopy.loading}</p>
+          </PublicCard>
+        ) : null}
 
-          <div className="detail-row">
-            <span className="label">预约编号：</span>
-            <span className="value">#{booking.id}</span>
-          </div>
-          <div className="detail-row">
-            <span className="label">服务项目：</span>
-            <span className="value">{booking.service_name}</span>
-          </div>
-          <div className="detail-row">
-            <span className="label">服务时长：</span>
-            <span className="value">{booking.duration_minutes} 分钟</span>
-          </div>
-          <div className="detail-row">
-            <span className="label">预约时间：</span>
-            <span className="value">{formatDateTime(booking.start_time)}</span>
-          </div>
-          <div className="detail-row">
-            <span className="label">价格：</span>
-            <span className="value highlight">${booking.price}</span>
-          </div>
-          <div className="detail-row">
-            <span className="label">预约状态：</span>
-            <span className={`value status-chip status-${booking.status}`}>{statusText[booking.status] || booking.status}</span>
-          </div>
-          <div className="detail-row">
-            <span className="label">支付状态：</span>
-            <span className={`value status-chip status-${booking.payment_status || 'pending'}`}>
-              {paymentStatusText[booking.payment_status] || '待支付'}
-            </span>
-          </div>
-          {booking.expires_at && booking.status === 'pending' && (
-            <div className="detail-row">
-              <span className="label">保留到：</span>
-              <span className="value">{formatDateTime(booking.expires_at)}</span>
+        {!loading && (error || !booking) ? (
+          <PublicCard>
+            <div className="rounded-2xl bg-error-container px-4 py-3 text-sm text-on-error-container">
+              {error || confirmationCopy.notFound}
             </div>
-          )}
-        </div>
+            <div className="mt-6">
+              <Link
+                className="inline-flex rounded-full bg-primary px-6 py-3 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-container"
+                to="/"
+              >
+                {confirmationCopy.actions.returnHome}
+              </Link>
+            </div>
+          </PublicCard>
+        ) : null}
 
-        <div className="customer-info">
-          <h2>联系信息</h2>
-          <p><strong>姓名：</strong>{booking.first_name} {booking.last_name}</p>
-          <p><strong>邮箱：</strong>{booking.email}</p>
-          <p><strong>电话：</strong>{booking.phone}</p>
-          {booking.notes && <p><strong>备注：</strong>{booking.notes}</p>}
-        </div>
+        {!loading && booking ? (
+          <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="space-y-6">
+              <PublicCard title={confirmationCopy.cards.bookingDetails}>
+                <SummaryRow label={confirmationCopy.labels.bookingId} value={`#${booking.id}`} />
+                <SummaryRow label={confirmationCopy.labels.service} value={booking.service_name} />
+                <SummaryRow
+                  label={confirmationCopy.labels.duration}
+                  value={`${booking.duration_minutes} ${homeCopy.services.durationLabel}`}
+                />
+                <SummaryRow label={confirmationCopy.labels.time} value={formatDateTime(booking.start_time)} />
+                <SummaryRow label={confirmationCopy.labels.price} value={formatMoney(booking.price)} />
+                <div className="flex items-center justify-between gap-4 border-b border-outline-variant/60 py-3 text-sm">
+                  <span className="text-on-surface-variant">{confirmationCopy.labels.status}</span>
+                  <PublicStatusChip tone={getToneForStatus(booking.status)}>
+                    {t.status.booking[booking.status] || booking.status}
+                  </PublicStatusChip>
+                </div>
+                <div className="flex items-center justify-between gap-4 py-3 text-sm">
+                  <span className="text-on-surface-variant">{confirmationCopy.labels.paymentStatus}</span>
+                  <PublicStatusChip tone={getToneForStatus(booking.payment_status || 'pending')}>
+                    {t.status.payment[booking.payment_status] || t.status.payment.pending}
+                  </PublicStatusChip>
+                </div>
+                {booking.expires_at && booking.status === 'pending' ? (
+                  <div className="border-t border-outline-variant/60 pt-3">
+                    <SummaryRow label={confirmationCopy.labels.reservedUntil} value={formatDateTime(booking.expires_at)} />
+                  </div>
+                ) : null}
+              </PublicCard>
 
-        <div className="next-steps">
-          <h2>下一步</h2>
-          <ul>
-            <li>支付成功后，系统会自动确认预约并发送邮件。</li>
-            <li>如果预约仍显示处理中，请稍候几秒后刷新本页。</li>
-            <li>如需取消，请直接联系客服；如需改期，请使用邮件中的管理链接。</li>
-          </ul>
-        </div>
+              <PublicCard title={confirmationCopy.cards.contact}>
+                <SummaryRow label={confirmationCopy.labels.name} value={`${booking.first_name} ${booking.last_name}`} />
+                <SummaryRow label={confirmationCopy.labels.email} value={booking.email} />
+                <SummaryRow label={confirmationCopy.labels.phone} value={booking.phone} />
+                {booking.notes ? <SummaryRow label={confirmationCopy.labels.notes} value={booking.notes} /> : null}
+              </PublicCard>
+            </div>
 
-        <div className="action-buttons">
-          <Link to="/" className="home-button">返回首页</Link>
-          {booking.status !== 'confirmed' && (
-            <Link to="/booking" className="home-button secondary-button">重新预约</Link>
-          )}
-        </div>
-      </div>
-    </div>
+            <PublicCard title={confirmationCopy.cards.nextSteps}>
+              <div className="rounded-[1.75rem] bg-surface-container p-6">
+                <div className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full text-4xl ${
+                  booking.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {booking.status === 'confirmed' ? '✓' : '…'}
+                </div>
+                <p className="mt-5 text-center text-sm leading-relaxed text-on-surface-variant">{heading.message}</p>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  className="inline-flex rounded-full bg-primary px-6 py-3 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-container"
+                  to="/"
+                >
+                  {confirmationCopy.actions.returnHome}
+                </Link>
+                {booking.status !== 'confirmed' ? (
+                  <Link
+                    className="inline-flex rounded-full border border-outline px-6 py-3 text-sm font-semibold text-secondary transition-colors hover:border-primary hover:text-primary"
+                    to="/booking"
+                  >
+                    {confirmationCopy.actions.rebook}
+                  </Link>
+                ) : null}
+              </div>
+            </PublicCard>
+          </div>
+        ) : null}
+      </section>
+    </PublicPageShell>
   );
 };
 
