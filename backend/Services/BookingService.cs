@@ -60,6 +60,29 @@ public sealed class BookingService
         return results;
     }
 
+    public async Task<IReadOnlyList<TechnicianDto>> GetActiveTechniciansAsync(CancellationToken cancellationToken = default)
+    {
+        var results = new List<TechnicianDto>();
+
+        await using var connection = await _connectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand(
+            """
+            SELECT id, display_name, display_name_zh, bio, is_active, created_at, updated_at
+            FROM technicians
+            WHERE is_active = TRUE
+            ORDER BY display_name ASC, id ASC;
+            """,
+            connection);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            results.Add(MapTechnician(reader));
+        }
+
+        return results;
+    }
+
     public async Task<CreateBookingPaymentResponseDto> CreateBookingAsync(
         CreateBookingRequest request,
         CancellationToken cancellationToken = default)
@@ -77,11 +100,18 @@ public sealed class BookingService
                 throw new ApiException(StatusCodes.Status400BadRequest, "Invalid service type");
             }
 
+            var technician = await GetTechnicianAsync(connection, transaction, request.TechnicianId, cancellationToken);
+            if (technician is null || !technician.IsActive)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Invalid technician");
+            }
+
             var customerId = await FindOrCreateCustomerAsync(connection, transaction, request.Customer, cancellationToken);
             var bookingGroupToken = requestedSlots.Count > 1 ? GenerateManageToken() : null;
             var expiresAt = DateTime.Now.AddMinutes(30);
             var bookingIds = new List<int>(requestedSlots.Count);
             var totalPriceCents = 0;
+            string? primaryManageToken = null;
 
             foreach (var slot in requestedSlots)
             {
@@ -100,26 +130,33 @@ public sealed class BookingService
                     slot.StartTime,
                     slot.EndTime,
                     durationMinutes,
+                    request.TechnicianId,
                     cancellationToken);
 
                 var bookingPriceCents = CalculateBookingPriceCents(serviceType.PriceCents, durationMinutes);
+                var manageToken = GenerateManageToken();
                 var bookingId = await InsertPendingBookingAsync(
                     connection,
                     transaction,
                     customerId,
                     serviceType.Id,
+                    request.TechnicianId,
                     slot.StartTime,
                     slot.EndTime,
                     durationMinutes,
                     bookingPriceCents,
                     request.Customer.Notes,
-                    GenerateManageToken(),
+                    manageToken,
                     bookingGroupToken,
                     expiresAt,
+                    "public",
+                    "stripe",
+                    "pending",
                     cancellationToken);
 
                 bookingIds.Add(bookingId);
                 totalPriceCents += bookingPriceCents;
+                primaryManageToken ??= manageToken;
             }
 
             var primaryBookingId = bookingIds[0];
@@ -144,6 +181,7 @@ public sealed class BookingService
                 Amount = paymentIntent.Amount,
                 Currency = paymentIntent.Currency,
                 Status = paymentIntent.Status,
+                ManageToken = primaryManageToken,
             };
         }
         catch
@@ -168,6 +206,7 @@ public sealed class BookingService
         DateTime? endDate,
         string? status,
         string? search,
+        int? technicianId,
         CancellationToken cancellationToken = default)
     {
         var results = new List<BookingListItemDto>();
@@ -193,6 +232,12 @@ public sealed class BookingService
         {
             whereClauses.Add("(c.first_name LIKE @search OR c.last_name LIKE @search OR c.email LIKE @search OR c.phone LIKE @search)");
             command.Parameters.AddWithValue("@search", $"%{search.Trim()}%");
+        }
+
+        if (technicianId.HasValue)
+        {
+            whereClauses.Add("b.technician_id = @technicianId");
+            command.Parameters.AddWithValue("@technicianId", technicianId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(status))
@@ -229,7 +274,14 @@ public sealed class BookingService
                 c.email,
                 c.phone,
                 s.name_zh AS service_name,
+                t.id AS technician_id,
+                t.display_name,
+                t.display_name_zh,
                 p.status AS payment_status,
+                p.payment_source,
+                b.created_via,
+                b.payment_mode,
+                b.manage_token,
                 (
                     SELECT COUNT(*)
                     FROM booking_reschedule_requests rr
@@ -238,6 +290,7 @@ public sealed class BookingService
             FROM bookings b
             JOIN customers c ON b.customer_id = c.id
             JOIN service_types s ON b.service_type_id = s.id
+            LEFT JOIN technicians t ON b.technician_id = t.id
             LEFT JOIN payments p ON b.id = p.booking_id
             {whereClause}
             ORDER BY b.start_time DESC;
@@ -253,6 +306,8 @@ public sealed class BookingService
                 CustomerEmail = reader.GetString("email"),
                 CustomerPhone = reader.GetString("phone"),
                 ServiceName = reader.GetString("service_name"),
+                TechnicianId = reader.GetNullableInt32("technician_id"),
+                TechnicianName = GetTechnicianDisplayName(reader),
                 DurationMinutes = reader.GetInt32("duration_minutes"),
                 StartTime = reader.GetDateTime("start_time"),
                 EndTime = reader.GetDateTime("end_time"),
@@ -261,6 +316,10 @@ public sealed class BookingService
                     reader.GetNullableDateTime("expires_at"),
                     reader.GetNullableString("payment_status")),
                 PaymentStatus = reader.GetNullableString("payment_status"),
+                PaymentSource = reader.GetNullableString("payment_source"),
+                CreatedVia = reader.GetNullableString("created_via") ?? "public",
+                PaymentMode = reader.GetNullableString("payment_mode"),
+                PaymentLink = GetPaymentLink(reader.GetNullableString("payment_mode"), reader.GetNullableString("manage_token")),
                 Price = reader.GetDecimal("price"),
                 CreatedAt = reader.GetDateTime("created_at"),
                 PendingRescheduleRequests = reader.GetInt32("pending_reschedule_requests"),
@@ -288,6 +347,7 @@ public sealed class BookingService
         var allowedStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "confirmed",
+            "arrived",
             "completed",
             "cancelled",
             "no_show",
@@ -693,7 +753,7 @@ public sealed class BookingService
                 throw new ApiException(StatusCodes.Status404NotFound, "Booking not found");
             }
 
-            if (booking.Status is "cancelled" or "completed" or "no_show")
+            if (booking.Status is "cancelled" or "completed" or "no_show" or "arrived")
             {
                 throw new ApiException(StatusCodes.Status400BadRequest, "This booking can no longer be rescheduled");
             }
@@ -1206,7 +1266,7 @@ public sealed class BookingService
             SELECT 1
             FROM bookings
             WHERE (@ignoreBookingId IS NULL OR id <> @ignoreBookingId)
-              AND status IN ('pending', 'confirmed')
+              AND status IN ('pending', 'confirmed', 'arrived')
               AND (
                     status <> 'pending'
                     OR expires_at IS NULL
