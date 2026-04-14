@@ -1,15 +1,46 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import bookingService from '../services/bookingService';
+import PublicCard from '../components/public/PublicCard';
+import PublicPageShell from '../components/public/PublicPageShell';
+import PublicStatusChip from '../components/public/PublicStatusChip';
+import { BOOKING_FLOW_COPY, HOME_COPY } from '../content/publicSiteContent';
+import usePublicLanguage from '../hooks/usePublicLanguage';
 import availabilityService from '../services/availabilityService';
-import './BookingPage.css';
+import bookingService from '../services/bookingService';
 
 const extractError = (error, fallback) => {
   return error.response?.data?.error?.message || error.message || fallback;
 };
 
+const getToneForStatus = (status) => {
+  if (status === 'approved' || status === 'confirmed' || status === 'succeeded') {
+    return 'success';
+  }
+
+  if (status === 'pending') {
+    return 'warning';
+  }
+
+  if (status === 'rejected' || status === 'cancelled' || status === 'failed') {
+    return 'danger';
+  }
+
+  return 'neutral';
+};
+
+const SummaryRow = ({ label, value }) => (
+  <div className="flex items-start justify-between gap-4 border-b border-outline-variant/60 py-3 text-sm last:border-b-0">
+    <span className="text-on-surface-variant">{label}</span>
+    <span className="text-right font-semibold text-on-surface">{value}</span>
+  </div>
+);
+
 const ManageBookingPage = () => {
   const { token } = useParams();
+  const { language, setLanguage, t, formatDateTime, formatTime } = usePublicLanguage(BOOKING_FLOW_COPY);
+  const homeCopy = HOME_COPY[language];
+  const manageCopy = t.manage;
+
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -26,7 +57,7 @@ const ManageBookingPage = () => {
       const response = await bookingService.getManagedBooking(token);
       setBooking(response.data);
     } catch (err) {
-      setError(extractError(err, '无法加载预约信息'));
+      setError(extractError(err, manageCopy.errors.loadBooking));
     } finally {
       setLoading(false);
     }
@@ -48,19 +79,19 @@ const ManageBookingPage = () => {
         const response = await availabilityService.getAvailableSlots(selectedDate, booking.durationMinutes);
         setSlots(response.data?.slots || []);
       } catch (err) {
-        setError(extractError(err, '无法加载可改期时间'));
+        setError(extractError(err, manageCopy.errors.loadSlots));
       } finally {
         setLoadingSlots(false);
       }
     };
 
     loadSlots();
-  }, [selectedDate, booking]);
+  }, [booking, manageCopy.errors.loadSlots, selectedDate]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!selectedSlot) {
-      setError('请选择新的预约时间');
+      setError(manageCopy.errors.chooseSlot);
       return;
     }
 
@@ -72,135 +103,194 @@ const ManageBookingPage = () => {
         requestedEndTime: selectedSlot.endTime,
         customerNote,
       });
-      setMessage('改期申请已提交，请等待管理员审核。');
+      setMessage(manageCopy.messages.submitted);
       setSelectedSlot(null);
       setCustomerNote('');
       setSelectedDate('');
       setSlots([]);
       await loadBooking();
     } catch (err) {
-      setError(extractError(err, '提交改期申请失败'));
+      setError(extractError(err, manageCopy.errors.submit));
     }
   };
 
-  if (loading) {
-    return <div className="booking-page"><div className="booking-container"><div className="loading">加载中...</div></div></div>;
-  }
-
-  if (error && !booking) {
-    return (
-      <div className="booking-page">
-        <div className="booking-container">
-          <div className="error-message">{error}</div>
-          <Link to="/" className="btn-primary">返回首页</Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="booking-page">
-      <div className="booking-container">
-        <h1>管理预约</h1>
-
-        {error && <div className="error-message">{error}</div>}
-        {message && <div className="success-banner">{message}</div>}
-
-        <div className="booking-summary">
-          <h3>当前预约</h3>
-          <p><strong>客户：</strong>{booking.customerName}</p>
-          <p><strong>服务：</strong>{booking.serviceName}</p>
-          <p><strong>时长：</strong>{booking.durationMinutes} 分钟</p>
-          <p><strong>时间：</strong>{new Date(booking.startTime).toLocaleString('zh-CN')}</p>
-          <p><strong>状态：</strong>{booking.status}</p>
-          <p><strong>支付状态：</strong>{booking.paymentStatus || 'pending'}</p>
-          <p><strong>支持邮箱：</strong>{booking.supportEmail}</p>
-        </div>
-
-        <div className="booking-summary">
-          <h3>改期说明</h3>
-          <p>本页面仅支持提交改期申请，预约取消请直接联系客服。</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="customer-form">
-          <div className="form-group">
-            <label htmlFor="reschedule-date">选择新的日期</label>
-            <input
-              id="reschedule-date"
-              type="date"
-              value={selectedDate}
-              onChange={(event) => setSelectedDate(event.target.value)}
-              disabled={!booking.canRequestReschedule}
-            />
+    <PublicPageShell
+      language={language}
+      setLanguage={setLanguage}
+      brand={homeCopy.brand}
+      footer={t.footer}
+      navCopy={t.nav}
+    >
+      <section className="mx-auto max-w-7xl px-6 pb-20 pt-4 md:px-8">
+        <div className="mb-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <p className="mb-4 font-label text-xs uppercase tracking-[0.3em] text-tertiary">{manageCopy.heroTag}</p>
+            <h1 className="mb-4 font-headline text-5xl leading-tight text-on-surface md:text-6xl">{manageCopy.title}</h1>
+            <p className="max-w-2xl text-lg leading-relaxed text-on-surface-variant">{manageCopy.description}</p>
           </div>
 
-          {selectedDate && (
-            <div className="time-slots">
-              <h3>可改期时间</h3>
-              {loadingSlots ? (
-                <div className="loading">加载中...</div>
-              ) : !slots.length ? (
-                <p className="no-slots">当天没有可用时间</p>
-              ) : (
-                <div className="slots-grid">
-                  {slots.map((slot, index) => (
+          <PublicCard title={manageCopy.cards.instructions}>
+            <p className="text-sm leading-relaxed text-on-surface-variant">{manageCopy.instructions}</p>
+          </PublicCard>
+        </div>
+
+        {loading ? (
+          <PublicCard>
+            <p className="text-sm text-on-surface-variant">{manageCopy.loading.page}</p>
+          </PublicCard>
+        ) : null}
+
+        {!loading && error && !booking ? (
+          <PublicCard>
+            <div className="rounded-2xl bg-error-container px-4 py-3 text-sm text-on-error-container">{error}</div>
+            <div className="mt-6">
+              <Link
+                className="inline-flex rounded-full bg-primary px-6 py-3 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-container"
+                to="/"
+              >
+                {manageCopy.actions.returnHome}
+              </Link>
+            </div>
+          </PublicCard>
+        ) : null}
+
+        {!loading && booking ? (
+          <div className="space-y-6">
+            {error ? (
+              <div className="rounded-[1.5rem] bg-error-container px-5 py-4 text-sm text-on-error-container">{error}</div>
+            ) : null}
+            {message ? (
+              <div className="rounded-[1.5rem] bg-emerald-100 px-5 py-4 text-sm text-emerald-800">{message}</div>
+            ) : null}
+
+            <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+              <div className="space-y-6">
+                <PublicCard title={manageCopy.cards.currentBooking}>
+                  <SummaryRow label={manageCopy.labels.customer} value={booking.customerName} />
+                  <SummaryRow label={manageCopy.labels.service} value={booking.serviceName} />
+                  <SummaryRow
+                    label={manageCopy.labels.duration}
+                    value={`${booking.durationMinutes} ${homeCopy.services.durationLabel}`}
+                  />
+                  <SummaryRow label={manageCopy.labels.time} value={formatDateTime(booking.startTime)} />
+                  <div className="flex items-center justify-between gap-4 border-b border-outline-variant/60 py-3 text-sm">
+                    <span className="text-on-surface-variant">{manageCopy.labels.status}</span>
+                    <PublicStatusChip tone={getToneForStatus(booking.status)}>
+                      {t.status.booking[booking.status] || booking.status}
+                    </PublicStatusChip>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 border-b border-outline-variant/60 py-3 text-sm">
+                    <span className="text-on-surface-variant">{manageCopy.labels.paymentStatus}</span>
+                    <PublicStatusChip tone={getToneForStatus(booking.paymentStatus || 'pending')}>
+                      {t.status.payment[booking.paymentStatus] || t.status.payment.pending}
+                    </PublicStatusChip>
+                  </div>
+                  <SummaryRow label={manageCopy.labels.supportEmail} value={booking.supportEmail} />
+                </PublicCard>
+
+                <PublicCard title={manageCopy.cards.history}>
+                  {!booking.rescheduleRequests?.length ? (
+                    <p className="text-sm text-on-surface-variant">{manageCopy.empty.noHistory}</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {booking.rescheduleRequests.map((request) => (
+                        <div key={request.id} className="rounded-[1.5rem] border border-outline-variant/70 bg-white p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-on-surface">{formatDateTime(request.requestedStartTime)}</p>
+                              <p className="mt-1 text-sm text-on-surface-variant">{request.customerNote || manageCopy.empty.noNote}</p>
+                            </div>
+                            <PublicStatusChip tone={getToneForStatus(request.status)}>
+                              {t.status.request[request.status] || request.status}
+                            </PublicStatusChip>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </PublicCard>
+              </div>
+
+              <PublicCard title={manageCopy.cards.availableSlots}>
+                <form className="space-y-6" onSubmit={handleSubmit}>
+                  <label className="block text-sm text-on-surface-variant">
+                    <span className="mb-2 block font-semibold text-on-surface">{manageCopy.labels.newDate}</span>
+                    <input
+                      className="w-full rounded-2xl border border-outline-variant bg-white px-4 py-3 text-on-surface outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:bg-surface-container"
+                      disabled={!booking.canRequestReschedule}
+                      id="reschedule-date"
+                      type="date"
+                      value={selectedDate}
+                      onChange={(event) => setSelectedDate(event.target.value)}
+                    />
+                  </label>
+
+                  {selectedDate ? (
+                    <div>
+                      {loadingSlots ? (
+                        <p className="text-sm text-on-surface-variant">{manageCopy.loading.slots}</p>
+                      ) : !slots.length ? (
+                        <div className="rounded-[1.5rem] bg-surface-container px-4 py-5 text-sm text-on-surface-variant">
+                          {manageCopy.empty.noSlots}
+                        </div>
+                      ) : (
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          {slots.map((slot, index) => (
+                            <button
+                              key={`${slot.startTime}-${index}`}
+                              type="button"
+                              className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors ${
+                                selectedSlot?.startTime === slot.startTime
+                                  ? 'border-primary bg-primary text-on-primary'
+                                  : 'border-outline-variant bg-white text-on-surface hover:border-primary hover:text-primary'
+                              }`}
+                              disabled={!booking.canRequestReschedule}
+                              onClick={() => setSelectedSlot(slot)}
+                            >
+                              {formatTime(slot.startTime)}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  <label className="block text-sm text-on-surface-variant">
+                    <span className="mb-2 block font-semibold text-on-surface">{manageCopy.labels.note}</span>
+                    <textarea
+                      className="min-h-28 w-full rounded-2xl border border-outline-variant bg-white px-4 py-3 text-on-surface outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:bg-surface-container"
+                      disabled={!booking.canRequestReschedule}
+                      id="customerNote"
+                      placeholder={manageCopy.placeholders.note}
+                      rows="4"
+                      value={customerNote}
+                      onChange={(event) => setCustomerNote(event.target.value)}
+                    />
+                  </label>
+
+                  <div className="flex flex-wrap gap-3">
                     <button
-                      key={`${slot.startTime}-${index}`}
-                      type="button"
-                      className={`slot-button ${selectedSlot?.startTime === slot.startTime ? 'selected' : ''}`}
-                      onClick={() => setSelectedSlot(slot)}
+                      type="submit"
+                      className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-on-primary transition-all hover:-translate-y-0.5 hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-60"
                       disabled={!booking.canRequestReschedule}
                     >
-                      {new Date(slot.startTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                      {manageCopy.actions.submit}
                     </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="form-group">
-            <label htmlFor="customerNote">申请备注</label>
-            <textarea
-              id="customerNote"
-              rows="4"
-              value={customerNote}
-              onChange={(event) => setCustomerNote(event.target.value)}
-              placeholder="可补充说明为什么希望调整时间"
-              disabled={!booking.canRequestReschedule}
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="next-button" disabled={!booking.canRequestReschedule}>
-              提交改期申请
-            </button>
-            <Link to="/" className="btn-secondary">返回首页</Link>
-          </div>
-        </form>
-
-        <div className="booking-summary">
-          <h3>历史改期申请</h3>
-          {!booking.rescheduleRequests?.length ? (
-            <p>暂无改期申请记录。</p>
-          ) : (
-            <div className="admin-list">
-              {booking.rescheduleRequests.map((request) => (
-                <div key={request.id} className="admin-list-item">
-                  <div>
-                    <strong>{new Date(request.requestedStartTime).toLocaleString('zh-CN')}</strong>
-                    <p>{request.customerNote || '无客户备注'}</p>
+                    <Link
+                      className="inline-flex rounded-full border border-outline px-6 py-3 text-sm font-semibold text-secondary transition-colors hover:border-primary hover:text-primary"
+                      to="/"
+                    >
+                      {manageCopy.actions.returnHome}
+                    </Link>
                   </div>
-                  <div className="admin-list-meta">
-                    <span className={`status-chip status-${request.status}`}>{request.status}</span>
-                  </div>
-                </div>
-              ))}
+                </form>
+              </PublicCard>
             </div>
-          )}
-        </div>
-      </div>
-    </div>
+          </div>
+        ) : null}
+      </section>
+    </PublicPageShell>
   );
 };
 
