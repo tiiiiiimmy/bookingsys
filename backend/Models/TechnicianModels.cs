@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace BookingSystem.Backend.Models;
 
-public sealed class TechnicianDto
+public class TechnicianDto
 {
     [JsonPropertyName("id")]
     public int Id { get; init; }
