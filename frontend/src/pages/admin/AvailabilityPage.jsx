@@ -1,6 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import useAdminLanguage from '../../hooks/useAdminLanguage';
 import availabilityService from '../../services/availabilityService';
+import {
+  adminButtonDangerClass,
+  adminButtonPrimaryClass,
+  adminButtonSecondaryClass,
+  adminEmptyStateClass,
+  adminInputClass,
+  adminLoadingClass,
+  adminPageTitleClass,
+  adminPanelClass,
+  adminPanelHeaderClass,
+  adminShellClass,
+  adminTextareaClass,
+  adminSubsectionTitleClass,
+  getAdminAlertClass,
+  getAdminStatusChipClass,
+} from '../../components/admin/adminStyles';
 
 const AvailabilityPage = () => {
   const { t, formatDate, formatTime } = useAdminLanguage();
@@ -37,7 +53,7 @@ const AvailabilityPage = () => {
 
   const handleToggleDay = async (dayOfWeek, currentIsActive) => {
     try {
-      const dayData = businessHours.find(h => h.dayOfWeek === dayOfWeek);
+      const dayData = businessHours.find((item) => item.dayOfWeek === dayOfWeek);
       await availabilityService.updateBusinessHours(dayOfWeek, {
         startTime: dayData.startTime,
         endTime: dayData.endTime,
@@ -52,7 +68,7 @@ const AvailabilityPage = () => {
 
   const handleUpdateHours = async (dayOfWeek, startTime, endTime) => {
     try {
-      const dayData = businessHours.find(h => h.dayOfWeek === dayOfWeek);
+      const dayData = businessHours.find((item) => item.dayOfWeek === dayOfWeek);
       await availabilityService.updateBusinessHours(dayOfWeek, {
         startTime,
         endTime,
@@ -65,8 +81,9 @@ const AvailabilityPage = () => {
     }
   };
 
-  const handleCreateBlock = async (e) => {
-    e.preventDefault();
+  const handleCreateBlock = async (event) => {
+    event.preventDefault();
+
     try {
       await availabilityService.createAvailabilityBlock({
         startTime: newBlock.startTime,
@@ -84,7 +101,9 @@ const AvailabilityPage = () => {
   };
 
   const handleDeleteBlock = async (blockId) => {
-    if (!window.confirm(t.availability.deleteConfirm)) return;
+    if (!window.confirm(t.availability.deleteConfirm)) {
+      return;
+    }
 
     try {
       await availabilityService.deleteAvailabilityBlock(blockId);
@@ -96,312 +115,187 @@ const AvailabilityPage = () => {
   };
 
   if (loading) {
-    return <div className="loading-screen"><p>{t.common.loading}</p></div>;
+    return (
+      <div className={adminLoadingClass}>
+        <p>{t.common.loading}</p>
+      </div>
+    );
   }
 
   return (
-    <div className="availability-page">
-      <h1>{t.availability.title}</h1>
+    <>
+      <div className={adminShellClass}>
+        <section className={adminPanelClass}>
+          <div className={adminPanelHeaderClass}>
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-tertiary">{t.layout.availability}</p>
+              <h1 className={`mt-3 ${adminPageTitleClass}`}>{t.availability.title}</h1>
+            </div>
+          </div>
 
-      {message.text && (
-        <div className={`alert alert-${message.type}`}>
-          {message.text}
-          <button aria-label={t.common.close} onClick={() => setMessage({ type: '', text: '' })}>×</button>
-        </div>
-      )}
-
-      <section className="section">
-        <h2>{t.availability.businessHoursTitle}</h2>
-        <div className="business-hours-list">
-          {businessHours.map(day => (
-            <div key={day.id} className="business-hours-item">
-              <div className="day-info">
-                <strong>{t.availability.days[day.dayOfWeek]}</strong>
-                <span className={`status ${day.isActive ? 'active' : 'inactive'}`}>
-                  {day.isActive ? t.availability.statusOpen : t.availability.statusClosed}
-                </span>
-              </div>
-              <div className="hours-info">
-                <input
-                  type="time"
-                  value={day.startTime}
-                  disabled={!day.isActive}
-                  onChange={(e) => handleUpdateHours(day.dayOfWeek, e.target.value, day.endTime)}
-                />
-                <span>-</span>
-                <input
-                  type="time"
-                  value={day.endTime}
-                  disabled={!day.isActive}
-                  onChange={(e) => handleUpdateHours(day.dayOfWeek, day.startTime, e.target.value)}
-                />
-              </div>
+          {message.text ? (
+            <div className={getAdminAlertClass(message.type === 'error' ? 'error' : 'success')}>
+              <span>{message.text}</span>
               <button
-                className="btn-secondary"
-                onClick={() => handleToggleDay(day.dayOfWeek, day.isActive)}
+                aria-label={t.common.close}
+                className="rounded-full px-2 py-1 font-semibold transition-colors hover:bg-black/5"
+                type="button"
+                onClick={() => setMessage({ type: '', text: '' })}
               >
-                {day.isActive ? t.availability.setClosed : t.availability.setOpen}
+                ×
               </button>
             </div>
-          ))}
-        </div>
-      </section>
+          ) : null}
+        </section>
 
-      <section className="section">
-        <div className="section-header">
-          <h2>{t.availability.blocksTitle}</h2>
-          <button className="btn-primary" onClick={() => setShowBlockModal(true)}>
-            {t.availability.addBlock}
-          </button>
-        </div>
+        <section className={adminPanelClass}>
+          <div className={adminPanelHeaderClass}>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-tertiary">{t.availability.businessHoursTitle}</p>
+              <h2 className="mt-2 font-headline text-2xl text-on-surface">{t.availability.businessHoursTitle}</h2>
+            </div>
+          </div>
 
-        {blocks.length === 0 ? (
-          <p className="empty-state">{t.availability.emptyBlocks}</p>
-        ) : (
-          <div className="blocks-list">
-            {blocks.map(block => (
-              <div key={block.id} className="block-item">
-                <div className="block-info">
-                  <div>
-                    <strong>
-                      {formatDate(block.startTime)} {formatTime(block.startTime)}
-                    </strong>
-                    {' - '}
-                    <strong>
-                      {formatDate(block.endTime)} {formatTime(block.endTime)}
-                    </strong>
+          <div className="space-y-3">
+            {businessHours.map((day) => (
+              <div
+                key={day.id}
+                className="rounded-[1.5rem] border border-outline-variant/40 bg-white px-5 py-4 shadow-[0_10px_24px_rgba(72,46,35,0.05)]"
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-[120px]">
+                    <p className="text-lg font-semibold text-on-surface">{t.availability.days[day.dayOfWeek]}</p>
+                    <span className={`mt-2 ${getAdminStatusChipClass(day.isActive ? 'active' : 'inactive')}`}>
+                      {day.isActive ? t.availability.statusOpen : t.availability.statusClosed}
+                    </span>
                   </div>
-                  {block.reason && <p className="block-reason">{block.reason}</p>}
+
+                  <div className="grid flex-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
+                    <input
+                      className={adminInputClass}
+                      disabled={!day.isActive}
+                      type="time"
+                      value={day.startTime}
+                      onChange={(event) => handleUpdateHours(day.dayOfWeek, event.target.value, day.endTime)}
+                    />
+                    <span className="text-center text-on-surface-variant">-</span>
+                    <input
+                      className={adminInputClass}
+                      disabled={!day.isActive}
+                      type="time"
+                      value={day.endTime}
+                      onChange={(event) => handleUpdateHours(day.dayOfWeek, day.startTime, event.target.value)}
+                    />
+                  </div>
+
+                  <button
+                    className={adminButtonSecondaryClass}
+                    type="button"
+                    onClick={() => handleToggleDay(day.dayOfWeek, day.isActive)}
+                  >
+                    {day.isActive ? t.availability.setClosed : t.availability.setOpen}
+                  </button>
                 </div>
-                <button
-                  className="btn-danger"
-                  onClick={() => handleDeleteBlock(block.id)}
-                >
-                  {t.availability.delete}
-                </button>
               </div>
             ))}
           </div>
-        )}
-      </section>
+        </section>
 
-      {showBlockModal && (
-        <div className="modal-overlay" onClick={() => setShowBlockModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>{t.availability.modal.title}</h3>
-            <form onSubmit={handleCreateBlock}>
-              <div className="form-group">
-                <label>{t.availability.modal.startTime}</label>
+        <section className={adminPanelClass}>
+          <div className={adminPanelHeaderClass}>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-tertiary">{t.availability.blocksTitle}</p>
+              <h2 className="mt-2 font-headline text-2xl text-on-surface">{t.availability.blocksTitle}</h2>
+            </div>
+            <button className={adminButtonPrimaryClass} type="button" onClick={() => setShowBlockModal(true)}>
+              {t.availability.addBlock}
+            </button>
+          </div>
+
+          {!blocks.length ? (
+            <p className={adminEmptyStateClass}>{t.availability.emptyBlocks}</p>
+          ) : (
+            <div className="space-y-3">
+              {blocks.map((block) => (
+                <div
+                  key={block.id}
+                  className="flex flex-col gap-4 rounded-[1.5rem] border border-outline-variant/40 bg-white px-5 py-4 shadow-[0_10px_24px_rgba(72,46,35,0.05)] lg:flex-row lg:items-center lg:justify-between"
+                >
+                  <div>
+                    <p className="text-lg font-semibold text-on-surface">
+                      {formatDate(block.startTime)} {formatTime(block.startTime)} - {formatDate(block.endTime)} {formatTime(block.endTime)}
+                    </p>
+                    {block.reason ? (
+                      <p className="mt-2 text-sm text-on-surface-variant">{block.reason}</p>
+                    ) : null}
+                  </div>
+                  <button className={adminButtonDangerClass} type="button" onClick={() => handleDeleteBlock(block.id)}>
+                    {t.availability.delete}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+
+      {showBlockModal ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 px-4 py-8 backdrop-blur-sm"
+          onClick={() => setShowBlockModal(false)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-[2rem] border border-outline/15 bg-white p-6 shadow-[0_30px_70px_rgba(63,42,31,0.2)] md:p-8"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 className={adminSubsectionTitleClass}>{t.availability.modal.title}</h3>
+            <form className="space-y-5" onSubmit={handleCreateBlock}>
+              <label className="block text-sm text-on-surface-variant">
+                <span className="mb-2 block font-semibold text-on-surface">{t.availability.modal.startTime}</span>
                 <input
+                  className={adminInputClass}
+                  required
                   type="datetime-local"
                   value={newBlock.startTime}
-                  onChange={(e) => setNewBlock({ ...newBlock, startTime: e.target.value })}
-                  required
+                  onChange={(event) => setNewBlock({ ...newBlock, startTime: event.target.value })}
                 />
-              </div>
-              <div className="form-group">
-                <label>{t.availability.modal.endTime}</label>
+              </label>
+              <label className="block text-sm text-on-surface-variant">
+                <span className="mb-2 block font-semibold text-on-surface">{t.availability.modal.endTime}</span>
                 <input
+                  className={adminInputClass}
+                  required
                   type="datetime-local"
                   value={newBlock.endTime}
-                  onChange={(e) => setNewBlock({ ...newBlock, endTime: e.target.value })}
-                  required
+                  onChange={(event) => setNewBlock({ ...newBlock, endTime: event.target.value })}
                 />
-              </div>
-              <div className="form-group">
-                <label>{t.availability.modal.reason}</label>
-                <input
-                  type="text"
-                  value={newBlock.reason}
-                  onChange={(e) => setNewBlock({ ...newBlock, reason: e.target.value })}
+              </label>
+              <label className="block text-sm text-on-surface-variant">
+                <span className="mb-2 block font-semibold text-on-surface">{t.availability.modal.reason}</span>
+                <textarea
+                  className={adminTextareaClass}
                   placeholder={t.availability.modal.reasonPlaceholder}
+                  value={newBlock.reason}
+                  onChange={(event) => setNewBlock({ ...newBlock, reason: event.target.value })}
                 />
-              </div>
-              <div className="modal-buttons">
-                <button type="button" className="btn-secondary" onClick={() => setShowBlockModal(false)}>
+              </label>
+              <div className="flex flex-wrap justify-end gap-3">
+                <button
+                  className={adminButtonSecondaryClass}
+                  type="button"
+                  onClick={() => setShowBlockModal(false)}
+                >
                   {t.availability.modal.cancel}
                 </button>
-                <button type="submit" className="btn-primary">
+                <button className={adminButtonPrimaryClass} type="submit">
                   {t.availability.modal.submit}
                 </button>
               </div>
             </form>
           </div>
         </div>
-      )}
-
-      <style jsx>{`
-        .availability-page {
-          max-width: 900px;
-        }
-
-        .section {
-          background: white;
-          padding: 30px;
-          border-radius: 8px;
-          margin-bottom: 30px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-        }
-
-        .section h2 {
-          margin-bottom: 20px;
-          color: #333;
-        }
-
-        .business-hours-list {
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-        }
-
-        .business-hours-item {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          padding: 15px;
-          border: 1px solid #ddd;
-          border-radius: 6px;
-        }
-
-        .day-info {
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
-          min-width: 80px;
-        }
-
-        .status {
-          font-size: 0.85rem;
-          padding: 2px 8px;
-          border-radius: 4px;
-        }
-
-        .status.active {
-          background: #d4edda;
-          color: #155724;
-        }
-
-        .status.inactive {
-          background: #f8d7da;
-          color: #721c24;
-        }
-
-        .hours-info {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex: 1;
-        }
-
-        .hours-info input {
-          padding: 8px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-        }
-
-        .blocks-list {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .block-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 15px;
-          border: 1px solid #ddd;
-          border-radius: 6px;
-        }
-
-        .block-reason {
-          margin-top: 5px;
-          color: #666;
-          font-size: 0.9rem;
-        }
-
-        .btn-danger {
-          background: #dc3545;
-          color: white;
-          border: none;
-          padding: 8px 16px;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-
-        .btn-danger:hover {
-          background: #c82333;
-        }
-
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .modal-content {
-          background: white;
-          padding: 30px;
-          border-radius: 8px;
-          max-width: 500px;
-          width: 90%;
-        }
-
-        .modal-content h3 {
-          margin-bottom: 20px;
-        }
-
-        .modal-buttons {
-          display: flex;
-          gap: 10px;
-          justify-content: flex-end;
-          margin-top: 20px;
-        }
-
-        .alert {
-          padding: 12px;
-          border-radius: 6px;
-          margin-bottom: 20px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .alert button {
-          background: none;
-          border: none;
-          font-size: 1.5rem;
-          cursor: pointer;
-          padding: 0 8px;
-        }
-
-        .alert-success {
-          background: #d4edda;
-          color: #155724;
-          border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-          background: #f8d7da;
-          color: #721c24;
-          border: 1px solid #f5c6cb;
-        }
-      `}</style>
-    </div>
+      ) : null}
+    </>
   );
 };
 
