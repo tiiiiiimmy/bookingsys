@@ -151,7 +151,6 @@ public sealed class BookingService
                     expiresAt,
                     "public",
                     "stripe",
-                    "pending",
                     cancellationToken);
 
                 bookingIds.Add(bookingId);
@@ -412,6 +411,7 @@ public sealed class BookingService
                 request.StartTime,
                 request.EndTime,
                 booking.DurationMinutes,
+                booking.TechnicianId,
                 cancellationToken,
                 bookingId);
 
@@ -765,6 +765,7 @@ public sealed class BookingService
                 request.RequestedStartTime,
                 request.RequestedEndTime,
                 booking.DurationMinutes,
+                booking.TechnicianId,
                 cancellationToken,
                 booking.Id);
 
@@ -845,6 +846,7 @@ public sealed class BookingService
                 request.RequestedStartTime,
                 request.RequestedEndTime,
                 booking.DurationMinutes,
+                booking.TechnicianId,
                 cancellationToken,
                 booking.Id);
 
@@ -1018,6 +1020,7 @@ public sealed class BookingService
                 transaction,
                 paymentRecord.StartTime,
                 paymentRecord.EndTime,
+                paymentRecord.TechnicianId,
                 cancellationToken,
                 paymentRecord.BookingId);
 
@@ -1225,12 +1228,14 @@ public sealed class BookingService
         DateTime startTime,
         DateTime endTime,
         int durationMinutes,
+        int? technicianId,
         CancellationToken cancellationToken,
         int? ignoreBookingId = null)
     {
         var availableSlots = await _availabilityService.GetAvailableSlotsAsync(
             DateOnly.FromDateTime(startTime),
             durationMinutes,
+            technicianId,
             cancellationToken);
         var requestedSlot = availableSlots.Slots.FirstOrDefault(slot =>
             slot.StartTime == startTime && slot.EndTime == endTime);
@@ -1245,6 +1250,7 @@ public sealed class BookingService
             transaction,
             startTime,
             endTime,
+            technicianId,
             cancellationToken,
             ignoreBookingId);
         if (hasConflict)
@@ -1258,6 +1264,7 @@ public sealed class BookingService
         MySqlTransaction transaction,
         DateTime startTime,
         DateTime endTime,
+        int? technicianId,
         CancellationToken cancellationToken,
         int? ignoreBookingId = null)
     {
@@ -1266,6 +1273,10 @@ public sealed class BookingService
             SELECT 1
             FROM bookings
             WHERE (@ignoreBookingId IS NULL OR id <> @ignoreBookingId)
+              AND (
+                    (@technicianId IS NULL AND technician_id IS NULL) OR
+                    technician_id = @technicianId
+                  )
               AND status IN ('pending', 'confirmed', 'arrived')
               AND (
                     status <> 'pending'
@@ -1282,6 +1293,7 @@ public sealed class BookingService
             connection,
             transaction);
         command.Parameters.AddWithValue("@ignoreBookingId", ignoreBookingId);
+        command.Parameters.AddWithValue("@technicianId", technicianId);
         command.Parameters.AddWithValue("@startTime", startTime);
         command.Parameters.AddWithValue("@endTime", endTime);
 
@@ -1347,6 +1359,7 @@ public sealed class BookingService
         MySqlTransaction transaction,
         int customerId,
         int serviceTypeId,
+        int? technicianId,
         DateTime startTime,
         DateTime endTime,
         int durationMinutes,
@@ -1355,22 +1368,27 @@ public sealed class BookingService
         string manageToken,
         string? bookingGroupToken,
         DateTime expiresAt,
+        string createdVia,
+        string? paymentMode,
         CancellationToken cancellationToken)
     {
         await using var command = new MySqlCommand(
             """
             INSERT INTO bookings
-                (customer_id, service_type_id, start_time, end_time, duration_minutes, status, price_cents, notes, manage_token, booking_group_token, expires_at)
+                (customer_id, service_type_id, technician_id, start_time, end_time, duration_minutes, status, created_via, payment_mode, price_cents, notes, manage_token, booking_group_token, expires_at)
             VALUES
-                (@customerId, @serviceTypeId, @startTime, @endTime, @durationMinutes, 'pending', @priceCents, @notes, @manageToken, @bookingGroupToken, @expiresAt);
+                (@customerId, @serviceTypeId, @technicianId, @startTime, @endTime, @durationMinutes, 'pending', @createdVia, @paymentMode, @priceCents, @notes, @manageToken, @bookingGroupToken, @expiresAt);
             """,
             connection,
             transaction);
         command.Parameters.AddWithValue("@customerId", customerId);
         command.Parameters.AddWithValue("@serviceTypeId", serviceTypeId);
+        command.Parameters.AddWithValue("@technicianId", technicianId);
         command.Parameters.AddWithValue("@startTime", startTime);
         command.Parameters.AddWithValue("@endTime", endTime);
         command.Parameters.AddWithValue("@durationMinutes", durationMinutes);
+        command.Parameters.AddWithValue("@createdVia", createdVia);
+        command.Parameters.AddWithValue("@paymentMode", paymentMode);
         command.Parameters.AddWithValue("@priceCents", priceCents);
         command.Parameters.AddWithValue("@notes", notes);
         command.Parameters.AddWithValue("@manageToken", manageToken);
@@ -1630,6 +1648,32 @@ public sealed class BookingService
         return MapServiceType(reader);
     }
 
+    private async Task<TechnicianDto?> GetTechnicianAsync(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        int technicianId,
+        CancellationToken cancellationToken)
+    {
+        await using var command = new MySqlCommand(
+            """
+            SELECT id, display_name, display_name_zh, bio, is_active, created_at, updated_at
+            FROM technicians
+            WHERE id = @id
+            LIMIT 1;
+            """,
+            connection,
+            transaction);
+        command.Parameters.AddWithValue("@id", technicianId);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            return null;
+        }
+
+        return MapTechnician(reader);
+    }
+
     private static ServiceTypeDto MapServiceType(MySqlDataReader reader)
     {
         return new ServiceTypeDto
@@ -1645,6 +1689,37 @@ public sealed class BookingService
             CreatedAt = reader.GetDateTime("created_at"),
             UpdatedAt = reader.GetDateTime("updated_at"),
         };
+    }
+
+    private static TechnicianDto MapTechnician(MySqlDataReader reader)
+    {
+        return new TechnicianDto
+        {
+            Id = reader.GetInt32("id"),
+            DisplayName = reader.GetString("display_name"),
+            DisplayNameZh = reader.GetNullableString("display_name_zh"),
+            Bio = reader.GetNullableString("bio"),
+            IsActive = reader.GetBoolean("is_active"),
+            CreatedAt = reader.GetDateTime("created_at"),
+            UpdatedAt = reader.GetDateTime("updated_at"),
+        };
+    }
+
+    private static string? GetTechnicianDisplayName(MySqlDataReader reader)
+    {
+        return reader.GetNullableString("display_name_zh")
+            ?? reader.GetNullableString("display_name");
+    }
+
+    private string? GetPaymentLink(string? paymentMode, string? manageToken)
+    {
+        if (!string.Equals(paymentMode, "manual", StringComparison.OrdinalIgnoreCase) ||
+            string.IsNullOrWhiteSpace(manageToken))
+        {
+            return null;
+        }
+
+        return $"{_appSettings.AppBaseUrl.TrimEnd('/')}/booking/manage/{manageToken}";
     }
 
     private static string GenerateManageToken()
@@ -1878,7 +1953,7 @@ public sealed class BookingService
     {
         await using var command = new MySqlCommand(
             """
-            SELECT id, start_time, end_time
+            SELECT id, start_time, end_time, technician_id
             FROM bookings
             WHERE booking_group_token = @bookingGroupToken
               AND status = 'pending';
@@ -1888,13 +1963,14 @@ public sealed class BookingService
         command.Parameters.AddWithValue("@bookingGroupToken", bookingGroupToken);
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        var groupSlots = new List<(int Id, DateTime StartTime, DateTime EndTime)>();
+        var groupSlots = new List<(int Id, DateTime StartTime, DateTime EndTime, int? TechnicianId)>();
         while (await reader.ReadAsync(cancellationToken))
         {
             groupSlots.Add((
                 reader.GetInt32("id"),
                 reader.GetDateTime("start_time"),
-                reader.GetDateTime("end_time")));
+                reader.GetDateTime("end_time"),
+                reader.GetNullableInt32("technician_id")));
         }
         await reader.CloseAsync();
 
@@ -1905,6 +1981,7 @@ public sealed class BookingService
                 transaction,
                 slot.StartTime,
                 slot.EndTime,
+                slot.TechnicianId,
                 cancellationToken,
                 slot.Id);
             if (hasConflict)
@@ -1940,7 +2017,7 @@ public sealed class BookingService
     {
         await using var command = new MySqlCommand(
             """
-            SELECT id, status, start_time, end_time, duration_minutes, expires_at, manage_token
+            SELECT id, status, start_time, end_time, duration_minutes, expires_at, technician_id, manage_token
             FROM bookings
             WHERE id = @id
             LIMIT 1;
@@ -1962,6 +2039,7 @@ public sealed class BookingService
             reader.GetDateTime("end_time"),
             reader.GetInt32("duration_minutes"),
             reader.GetNullableDateTime("expires_at"),
+            reader.GetNullableInt32("technician_id"),
             reader.GetNullableString("manage_token"));
     }
 
@@ -1973,7 +2051,7 @@ public sealed class BookingService
     {
         await using var command = new MySqlCommand(
             """
-            SELECT id, status, start_time, end_time, duration_minutes, expires_at, manage_token
+            SELECT id, status, start_time, end_time, duration_minutes, expires_at, technician_id, manage_token
             FROM bookings
             WHERE manage_token = @token
             LIMIT 1;
@@ -1995,6 +2073,7 @@ public sealed class BookingService
             reader.GetDateTime("end_time"),
             reader.GetInt32("duration_minutes"),
             reader.GetNullableDateTime("expires_at"),
+            reader.GetNullableInt32("technician_id"),
             reader.GetNullableString("manage_token"));
     }
 
@@ -2014,6 +2093,7 @@ public sealed class BookingService
                 b.start_time,
                 b.end_time,
                 b.expires_at,
+                b.technician_id,
                 b.booking_group_token
             FROM payments p
             JOIN bookings b ON p.booking_id = b.id
@@ -2038,6 +2118,7 @@ public sealed class BookingService
             reader.GetDateTime("start_time"),
             reader.GetDateTime("end_time"),
             reader.GetNullableDateTime("expires_at"),
+            reader.GetNullableInt32("technician_id"),
             reader.GetNullableString("booking_group_token"));
     }
 
@@ -2103,6 +2184,7 @@ public sealed class BookingService
         DateTime EndTime,
         int DurationMinutes,
         DateTime? ExpiresAt,
+        int? TechnicianId,
         string? ManageToken);
 
     private sealed record PaymentAndBookingRecord(
@@ -2113,6 +2195,7 @@ public sealed class BookingService
         DateTime StartTime,
         DateTime EndTime,
         DateTime? ExpiresAt,
+        int? TechnicianId,
         string? BookingGroupToken);
 
     private sealed record RescheduleRequestRecord(
