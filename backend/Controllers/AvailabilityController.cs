@@ -21,6 +21,7 @@ public sealed class AvailabilityController : ControllerBase
     public async Task<IActionResult> GetAvailableSlots(
         [FromQuery] string date,
         [FromQuery] int duration,
+        [FromQuery] int? technicianId,
         CancellationToken cancellationToken)
     {
         if (!DateOnly.TryParse(date, out var requestedDate))
@@ -28,7 +29,7 @@ public sealed class AvailabilityController : ControllerBase
             throw new ApiException(StatusCodes.Status400BadRequest, "Invalid date format. Use YYYY-MM-DD");
         }
 
-        var result = await _availabilityService.GetAvailableSlotsAsync(requestedDate, duration, cancellationToken);
+        var result = await _availabilityService.GetAvailableSlotsAsync(requestedDate, duration, technicianId, cancellationToken);
         return Ok(new ApiResponse<AvailableSlotsResultDto> { Data = result });
     }
 
