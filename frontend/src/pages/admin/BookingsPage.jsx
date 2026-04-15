@@ -2,15 +2,40 @@ import React, { useEffect, useState } from 'react';
 import { getAdminBookingStatusBadges, getAdminStatusLabel } from '../../content/adminContent';
 import useAdminLanguage from '../../hooks/useAdminLanguage';
 import adminService from '../../services/adminService';
+import {
+  adminButtonDangerClass,
+  adminButtonPrimaryClass,
+  adminButtonSuccessClass,
+  adminButtonWarningClass,
+  adminDetailCardClass,
+  adminDetailGridClass,
+  adminEmptyStateClass,
+  adminFieldLabelClass,
+  adminFieldValueClass,
+  adminGridClass,
+  adminInputClass,
+  adminListButtonClass,
+  adminListClass,
+  adminPageTitleClass,
+  adminPanelClass,
+  adminPanelHeaderClass,
+  adminSectionStackClass,
+  adminSubsectionTitleClass,
+  getAdminAlertClass,
+  getAdminStatusChipClass,
+} from '../../components/admin/adminStyles';
 
 const extractError = (error, fallback) => {
   return error.response?.data?.error?.message || error.message || fallback;
 };
 
 const renderStatusBadges = (copy, status) => (
-  <div className="status-badge-group">
+  <div className="flex flex-wrap items-center gap-2">
     {getAdminBookingStatusBadges(copy, status).map((badge) => (
-      <span key={`${status}-${badge.tone}-${badge.label}`} className={`status-chip status-${badge.tone}`}>
+      <span
+        key={`${status}-${badge.tone}-${badge.label}`}
+        className={getAdminStatusChipClass(badge.tone)}
+      >
         {badge.label}
       </span>
     ))}
@@ -41,11 +66,11 @@ const BookingsPage = () => {
   const loadBookings = async () => {
     try {
       setLoading(true);
-      const params = Object.fromEntries(
-        Object.entries(filters).filter(([, value]) => value)
-      );
+      setError('');
+      const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
       const response = await adminService.getBookings(params);
       setBookings(response.data || []);
+
       if (response.data?.length) {
         const stillExists = response.data.some((booking) => booking.id === selectedBookingId);
         if (!stillExists) {
@@ -69,6 +94,7 @@ const BookingsPage = () => {
 
     try {
       setDetailLoading(true);
+      setError('');
       const response = await adminService.getBookingById(bookingId);
       setSelectedBooking(response.data);
     } catch (err) {
@@ -89,6 +115,7 @@ const BookingsPage = () => {
   const handleStatusUpdate = async (status) => {
     try {
       setError('');
+      setMessage('');
       await adminService.updateBookingStatus(selectedBookingId, {
         status,
         cancellationReason: status === 'cancelled' ? t.bookings.adminCancelledReason : null,
@@ -106,6 +133,7 @@ const BookingsPage = () => {
 
     try {
       setError('');
+      setMessage('');
       await adminService.rescheduleBooking(selectedBookingId, rescheduleForm);
       setMessage(t.bookings.rescheduleSuccess);
       setRescheduleForm({ startTime: '', endTime: '', adminNote: '' });
@@ -124,6 +152,7 @@ const BookingsPage = () => {
 
     try {
       setError('');
+      setMessage('');
       if (action === 'approve') {
         await adminService.approveRescheduleRequest(requestId, adminNote);
       } else {
@@ -146,10 +175,10 @@ const BookingsPage = () => {
       case 'pending':
         return (
           <>
-            <button type="button" className="btn-status btn-status-confirmed" onClick={() => handleStatusUpdate('confirmed')}>
+            <button className={adminButtonSuccessClass} type="button" onClick={() => handleStatusUpdate('confirmed')}>
               {t.bookings.actions.confirmBooking}
             </button>
-            <button type="button" className="btn-danger" onClick={() => handleStatusUpdate('cancelled')}>
+            <button className={adminButtonDangerClass} type="button" onClick={() => handleStatusUpdate('cancelled')}>
               {t.bookings.actions.cancelBooking}
             </button>
           </>
@@ -157,13 +186,13 @@ const BookingsPage = () => {
       case 'confirmed':
         return (
           <>
-            <button type="button" className="btn-status btn-status-confirmed" onClick={() => handleStatusUpdate('arrived')}>
+            <button className={adminButtonSuccessClass} type="button" onClick={() => handleStatusUpdate('arrived')}>
               {t.bookings.actions.confirmArrival}
             </button>
-            <button type="button" className="btn-status btn-status-no-show" onClick={() => handleStatusUpdate('no_show')}>
+            <button className={adminButtonWarningClass} type="button" onClick={() => handleStatusUpdate('no_show')}>
               {t.bookings.actions.markNoShow}
             </button>
-            <button type="button" className="btn-danger" onClick={() => handleStatusUpdate('cancelled')}>
+            <button className={adminButtonDangerClass} type="button" onClick={() => handleStatusUpdate('cancelled')}>
               {t.bookings.actions.cancelBooking}
             </button>
           </>
@@ -171,21 +200,19 @@ const BookingsPage = () => {
       case 'arrived':
         return (
           <>
-            <button type="button" className="btn-status btn-status-completed" onClick={() => handleStatusUpdate('completed')}>
+            <button className={adminButtonSuccessClass} type="button" onClick={() => handleStatusUpdate('completed')}>
               {t.bookings.actions.markCompleted}
             </button>
-            <button type="button" className="btn-status btn-status-no-show" onClick={() => handleStatusUpdate('no_show')}>
+            <button className={adminButtonWarningClass} type="button" onClick={() => handleStatusUpdate('no_show')}>
               {t.bookings.actions.markNoShow}
             </button>
           </>
         );
       case 'no_show':
         return (
-          <>
-            <button type="button" className="btn-status btn-status-confirmed" onClick={() => handleStatusUpdate('arrived')}>
-              {t.bookings.actions.confirmArrival}
-            </button>
-          </>
+          <button className={adminButtonSuccessClass} type="button" onClick={() => handleStatusUpdate('arrived')}>
+            {t.bookings.actions.confirmArrival}
+          </button>
         );
       default:
         return null;
@@ -193,27 +220,33 @@ const BookingsPage = () => {
   };
 
   return (
-    <div className="admin-two-column">
-      <section className="admin-panel">
-        <div className="section-header">
-          <h1>{t.bookings.title}</h1>
+    <div className={adminGridClass}>
+      <section className={adminPanelClass}>
+        <div className={adminPanelHeaderClass}>
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-tertiary">{t.layout.bookings}</p>
+            <h1 className={`mt-3 ${adminPageTitleClass}`}>{t.bookings.title}</h1>
+          </div>
         </div>
 
-        {error && <div className="alert alert-error">{error}</div>}
-        {message && <div className="alert alert-success">{message}</div>}
+        {error ? <div className={`${getAdminAlertClass('error')} mb-5`}>{error}</div> : null}
+        {message ? <div className={`${getAdminAlertClass('success')} mb-5`}>{message}</div> : null}
 
-        <div className="filter-grid">
+        <div className="mb-6 grid gap-3 md:grid-cols-2">
           <input
+            className={adminInputClass}
             type="date"
             value={filters.startDate}
             onChange={(event) => setFilters((prev) => ({ ...prev, startDate: event.target.value }))}
           />
           <input
+            className={adminInputClass}
             type="date"
             value={filters.endDate}
             onChange={(event) => setFilters((prev) => ({ ...prev, endDate: event.target.value }))}
           />
           <select
+            className={adminInputClass}
             value={filters.status}
             onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}
           >
@@ -227,135 +260,210 @@ const BookingsPage = () => {
             <option value="expired">{getAdminStatusLabel(t, 'expired')}</option>
           </select>
           <input
-            type="text"
+            className={adminInputClass}
             placeholder={t.bookings.filters.searchPlaceholder}
+            type="text"
             value={filters.search}
             onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
           />
-          <button type="button" className="btn-primary" onClick={loadBookings}>
+          <button className={adminButtonPrimaryClass} type="button" onClick={loadBookings}>
             {t.bookings.filters.search}
           </button>
         </div>
 
         {loading ? (
-          <p className="empty-state">{t.common.loading}</p>
+          <p className={adminEmptyStateClass}>{t.common.loading}</p>
         ) : !bookings.length ? (
-          <p className="empty-state">{t.bookings.empty}</p>
+          <p className={adminEmptyStateClass}>{t.bookings.empty}</p>
         ) : (
-          <div className="admin-list">
-            {bookings.map((booking) => (
-              <button
-                type="button"
-                key={booking.id}
-                className={`admin-list-item admin-list-button ${selectedBookingId === booking.id ? 'selected' : ''}`}
-                onClick={() => setSelectedBookingId(booking.id)}
-              >
-                <div>
-                  <strong>#{booking.id} {booking.customerName}</strong>
-                  <p>{booking.serviceName}</p>
-                  <p>{formatDateTime(booking.startTime)}</p>
-                </div>
-                <div className="admin-list-meta">
-                  {renderStatusBadges(t, booking.status)}
-                  <span className={`status-chip status-${booking.paymentStatus || 'pending'}`}>
-                    {getAdminStatusLabel(t, booking.paymentStatus || 'pending')}
-                  </span>
-                </div>
-              </button>
-            ))}
+          <div className={adminListClass}>
+            {bookings.map((booking) => {
+              const isSelected = selectedBookingId === booking.id;
+
+              return (
+                <button
+                  key={booking.id}
+                  className={`${adminListButtonClass} ${
+                    isSelected ? 'border-primary bg-primary-fixed/20 ring-2 ring-primary-fixed' : ''
+                  }`}
+                  type="button"
+                  onClick={() => setSelectedBookingId(booking.id)}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <p className="text-lg font-semibold text-on-surface">
+                        #{booking.id} {booking.customerName}
+                      </p>
+                      <p className="mt-1 text-sm text-on-surface-variant">{booking.serviceName}</p>
+                      <p className="mt-1 text-sm text-on-surface-variant">{formatDateTime(booking.startTime)}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {renderStatusBadges(t, booking.status)}
+                      <span className={getAdminStatusChipClass(booking.paymentStatus || 'pending')}>
+                        {getAdminStatusLabel(t, booking.paymentStatus || 'pending')}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </section>
 
-      <section className="admin-panel">
-        <div className="section-header">
-          <h2>{t.bookings.detailTitle}</h2>
+      <section className={`${adminPanelClass} ${adminSectionStackClass}`}>
+        <div className={adminPanelHeaderClass}>
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-tertiary">{t.bookings.detailTitle}</p>
+            <h2 className="mt-2 font-headline text-2xl text-on-surface">{t.bookings.detailTitle}</h2>
+          </div>
         </div>
 
         {detailLoading ? (
-          <p className="empty-state">{t.common.loadingDetails}</p>
+          <p className={adminEmptyStateClass}>{t.common.loadingDetails}</p>
         ) : !selectedBooking ? (
-          <p className="empty-state">{t.bookings.selectHint}</p>
+          <p className={adminEmptyStateClass}>{t.bookings.selectHint}</p>
         ) : (
           <>
-            <div className="detail-grid">
-              <div><strong>{t.bookings.fields.bookingId}</strong><p>#{selectedBooking.id}</p></div>
-              <div><strong>{t.bookings.fields.customer}</strong><p>{selectedBooking.customerName}</p></div>
-              <div><strong>{t.bookings.fields.email}</strong><p>{selectedBooking.customerEmail}</p></div>
-              <div><strong>{t.bookings.fields.phone}</strong><p>{selectedBooking.customerPhone}</p></div>
-              <div><strong>{t.bookings.fields.service}</strong><p>{selectedBooking.serviceName}</p></div>
-              <div><strong>{t.bookings.fields.duration}</strong><p>{selectedBooking.durationMinutes} {t.common.minuteUnit}</p></div>
-              <div><strong>{t.bookings.fields.time}</strong><p>{formatDateTime(selectedBooking.startTime)}</p></div>
-              <div><strong>{t.bookings.fields.price}</strong><p>{formatMoney(selectedBooking.price)}</p></div>
-              <div><strong>{t.bookings.fields.bookingStatus}</strong>{renderStatusBadges(t, selectedBooking.status)}</div>
-              <div><strong>{t.bookings.fields.paymentStatus}</strong><p>{getAdminStatusLabel(t, selectedBooking.paymentStatus || 'pending')}</p></div>
-              <div><strong>{t.bookings.fields.paymentIntent}</strong><p>{selectedBooking.stripePaymentIntentId || '-'}</p></div>
-              <div><strong>{t.bookings.fields.manageToken}</strong><p className="truncate-text">{selectedBooking.manageToken || '-'}</p></div>
-            </div>
-
-            {selectedBooking.notes && (
-              <div className="note-box">
-                <strong>{t.bookings.notes}</strong>
-                <p>{selectedBooking.notes}</p>
+            <div className={adminDetailGridClass}>
+              <div className={adminDetailCardClass}>
+                <p className={adminFieldLabelClass}>{t.bookings.fields.bookingId}</p>
+                <p className={adminFieldValueClass}>#{selectedBooking.id}</p>
               </div>
-            )}
-
-            <div className="button-row">
-              {renderStatusActions()}
+              <div className={adminDetailCardClass}>
+                <p className={adminFieldLabelClass}>{t.bookings.fields.customer}</p>
+                <p className={adminFieldValueClass}>{selectedBooking.customerName}</p>
+              </div>
+              <div className={adminDetailCardClass}>
+                <p className={adminFieldLabelClass}>{t.bookings.fields.email}</p>
+                <p className={adminFieldValueClass}>{selectedBooking.customerEmail}</p>
+              </div>
+              <div className={adminDetailCardClass}>
+                <p className={adminFieldLabelClass}>{t.bookings.fields.phone}</p>
+                <p className={adminFieldValueClass}>{selectedBooking.customerPhone}</p>
+              </div>
+              <div className={adminDetailCardClass}>
+                <p className={adminFieldLabelClass}>{t.bookings.fields.service}</p>
+                <p className={adminFieldValueClass}>{selectedBooking.serviceName}</p>
+              </div>
+              <div className={adminDetailCardClass}>
+                <p className={adminFieldLabelClass}>{t.bookings.fields.duration}</p>
+                <p className={adminFieldValueClass}>
+                  {selectedBooking.durationMinutes} {t.common.minuteUnit}
+                </p>
+              </div>
+              <div className={adminDetailCardClass}>
+                <p className={adminFieldLabelClass}>{t.bookings.fields.time}</p>
+                <p className={adminFieldValueClass}>{formatDateTime(selectedBooking.startTime)}</p>
+              </div>
+              <div className={adminDetailCardClass}>
+                <p className={adminFieldLabelClass}>{t.bookings.fields.price}</p>
+                <p className={adminFieldValueClass}>{formatMoney(selectedBooking.price)}</p>
+              </div>
+              <div className={adminDetailCardClass}>
+                <p className={adminFieldLabelClass}>{t.bookings.fields.bookingStatus}</p>
+                <div className="mt-2">{renderStatusBadges(t, selectedBooking.status)}</div>
+              </div>
+              <div className={adminDetailCardClass}>
+                <p className={adminFieldLabelClass}>{t.bookings.fields.paymentStatus}</p>
+                <p className={adminFieldValueClass}>
+                  {getAdminStatusLabel(t, selectedBooking.paymentStatus || 'pending')}
+                </p>
+              </div>
+              <div className={adminDetailCardClass}>
+                <p className={adminFieldLabelClass}>{t.bookings.fields.paymentIntent}</p>
+                <p className={adminFieldValueClass}>{selectedBooking.stripePaymentIntentId || '-'}</p>
+              </div>
+              <div className={adminDetailCardClass}>
+                <p className={adminFieldLabelClass}>{t.bookings.fields.manageToken}</p>
+                <p className={adminFieldValueClass}>{selectedBooking.manageToken || '-'}</p>
+              </div>
             </div>
 
-            <form onSubmit={handleReschedule} className="admin-form-section">
-              <h3>{t.bookings.reschedule.title}</h3>
-              <div className="filter-grid">
+            {selectedBooking.notes ? (
+              <div className="rounded-[1.5rem] border border-outline/20 bg-primary-fixed/20 px-5 py-4">
+                <p className={adminFieldLabelClass}>{t.bookings.notes}</p>
+                <p className="mt-2 text-sm leading-relaxed text-on-surface">{selectedBooking.notes}</p>
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap gap-3">{renderStatusActions()}</div>
+
+            <form className="space-y-4 rounded-[1.5rem] border border-outline/20 bg-surface-container-low px-5 py-5" onSubmit={handleReschedule}>
+              <h3 className={adminSubsectionTitleClass}>{t.bookings.reschedule.title}</h3>
+              <div className="grid gap-3 md:grid-cols-2">
                 <input
                   aria-label={t.bookings.reschedule.startTime}
+                  className={adminInputClass}
+                  required
                   type="datetime-local"
                   value={rescheduleForm.startTime}
                   onChange={(event) => setRescheduleForm((prev) => ({ ...prev, startTime: event.target.value }))}
-                  required
                 />
                 <input
                   aria-label={t.bookings.reschedule.endTime}
+                  className={adminInputClass}
+                  required
                   type="datetime-local"
                   value={rescheduleForm.endTime}
                   onChange={(event) => setRescheduleForm((prev) => ({ ...prev, endTime: event.target.value }))}
-                  required
                 />
-                <input
-                  type="text"
-                  placeholder={t.bookings.reschedule.adminNote}
-                  value={rescheduleForm.adminNote}
-                  onChange={(event) => setRescheduleForm((prev) => ({ ...prev, adminNote: event.target.value }))}
-                />
-                <button type="submit" className="btn-primary">{t.bookings.actions.submitReschedule}</button>
               </div>
+              <input
+                className={adminInputClass}
+                placeholder={t.bookings.reschedule.adminNote}
+                type="text"
+                value={rescheduleForm.adminNote}
+                onChange={(event) => setRescheduleForm((prev) => ({ ...prev, adminNote: event.target.value }))}
+              />
+              <button className={adminButtonPrimaryClass} type="submit">
+                {t.bookings.actions.submitReschedule}
+              </button>
             </form>
 
-            <div className="admin-form-section">
-              <h3>{t.bookings.requests.title}</h3>
+            <div>
+              <h3 className={adminSubsectionTitleClass}>{t.bookings.requests.title}</h3>
               {!selectedBooking.rescheduleRequests?.length ? (
-                <p className="empty-state">{t.bookings.requests.empty}</p>
+                <p className={adminEmptyStateClass}>{t.bookings.requests.empty}</p>
               ) : (
-                <div className="admin-list">
+                <div className={adminListClass}>
                   {selectedBooking.rescheduleRequests.map((request) => (
-                    <div key={request.id} className="admin-list-item">
-                      <div>
-                        <strong>{formatDateTime(request.requestedStartTime)}</strong>
-                        <p>{request.customerNote || t.bookings.requests.noCustomerNote}</p>
-                        <p>{request.adminNote || ''}</p>
-                      </div>
-                      <div className="admin-list-meta">
-                        <span className={`status-chip status-${request.status}`}>{getAdminStatusLabel(t, request.status)}</span>
-                        {request.status === 'pending' && (
-                          <div className="button-row compact">
-                            <button type="button" className="btn-primary" onClick={() => handleReviewRequest(request.id, 'approve')}>
-                              {t.bookings.actions.approve}
-                            </button>
-                            <button type="button" className="btn-danger" onClick={() => handleReviewRequest(request.id, 'reject')}>
-                              {t.bookings.actions.reject}
-                            </button>
-                          </div>
-                        )}
+                    <div key={request.id} className={adminListButtonClass}>
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <p className="text-lg font-semibold text-on-surface">
+                            {formatDateTime(request.requestedStartTime)}
+                          </p>
+                          <p className="mt-1 text-sm text-on-surface-variant">
+                            {request.customerNote || t.bookings.requests.noCustomerNote}
+                          </p>
+                          {request.adminNote ? (
+                            <p className="mt-1 text-sm text-on-surface-variant">{request.adminNote}</p>
+                          ) : null}
+                        </div>
+                        <div className="flex flex-col items-end gap-3">
+                          <span className={getAdminStatusChipClass(request.status)}>
+                            {getAdminStatusLabel(t, request.status)}
+                          </span>
+                          {request.status === 'pending' ? (
+                            <div className="flex flex-wrap justify-end gap-2">
+                              <button
+                                className={adminButtonSuccessClass}
+                                type="button"
+                                onClick={() => handleReviewRequest(request.id, 'approve')}
+                              >
+                                {t.bookings.actions.approve}
+                              </button>
+                              <button
+                                className={adminButtonDangerClass}
+                                type="button"
+                                onClick={() => handleReviewRequest(request.id, 'reject')}
+                              >
+                                {t.bookings.actions.reject}
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                   ))}
