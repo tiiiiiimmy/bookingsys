@@ -23,9 +23,10 @@ public sealed class AdminOperationsController : ControllerBase
         [FromQuery] DateTime? endDate,
         [FromQuery] string? status,
         [FromQuery] string? search,
+        [FromQuery] int? technicianId,
         CancellationToken cancellationToken)
     {
-        var result = await _bookingService.GetAdminBookingsAsync(startDate, endDate, status, search, cancellationToken);
+        var result = await _bookingService.GetAdminBookingsAsync(startDate, endDate, status, search, technicianId, cancellationToken);
         return Ok(new ApiResponse<IReadOnlyList<BookingListItemDto>> { Data = result });
     }
 
