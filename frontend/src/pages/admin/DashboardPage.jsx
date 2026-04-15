@@ -3,6 +3,18 @@ import { getAdminStatusLabel } from '../../content/adminContent';
 import useAdminLanguage from '../../hooks/useAdminLanguage';
 import { useAuth } from '../../hooks/useAuth';
 import adminService from '../../services/adminService';
+import {
+  adminCardListItemClass,
+  adminEmptyStateClass,
+  adminListClass,
+  adminLoadingClass,
+  adminPageTitleClass,
+  adminPanelClass,
+  adminPanelHeaderClass,
+  adminShellClass,
+  getAdminAlertClass,
+  getAdminStatusChipClass,
+} from '../../components/admin/adminStyles';
 
 const DashboardPage = () => {
   const { admin } = useAuth();
@@ -28,59 +40,70 @@ const DashboardPage = () => {
   }, [t.dashboard.loadError]);
 
   if (loading) {
-    return <div className="loading-screen"><p>{t.common.loading}</p></div>;
+    return (
+      <div className={adminLoadingClass}>
+        <p>{t.common.loading}</p>
+      </div>
+    );
   }
 
+  const statCards = [
+    { label: t.dashboard.stats.todayBookings, value: stats?.todayBookings ?? 0 },
+    { label: t.dashboard.stats.weekBookings, value: stats?.weekBookings ?? 0 },
+    { label: t.dashboard.stats.monthRevenue, value: formatMoney(stats?.monthRevenue ?? 0) },
+    { label: t.dashboard.stats.customerCount, value: stats?.customerCount ?? 0 },
+    { label: t.dashboard.stats.pendingRescheduleRequests, value: stats?.pendingRescheduleRequests ?? 0 },
+  ];
+
   return (
-    <div className="dashboard-page">
-      <h1>{t.dashboard.welcome}, {admin?.firstName} {admin?.lastName}</h1>
+    <div className={adminShellClass}>
+      <section className={adminPanelClass}>
+        <p className="text-xs uppercase tracking-[0.3em] text-tertiary">{t.layout.dashboard}</p>
+        <h1 className={`mt-3 ${adminPageTitleClass}`}>
+          {t.dashboard.welcome}, {admin?.firstName} {admin?.lastName}
+        </h1>
+      </section>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error ? <div className={getAdminAlertClass('error')}>{error}</div> : null}
 
-      <div className="dashboard-grid">
-        <div className="dashboard-card">
-          <h3>{t.dashboard.stats.todayBookings}</h3>
-          <p className="stat-number">{stats?.todayBookings ?? 0}</p>
-        </div>
-        <div className="dashboard-card">
-          <h3>{t.dashboard.stats.weekBookings}</h3>
-          <p className="stat-number">{stats?.weekBookings ?? 0}</p>
-        </div>
-        <div className="dashboard-card">
-          <h3>{t.dashboard.stats.monthRevenue}</h3>
-          <p className="stat-number">{formatMoney(stats?.monthRevenue ?? 0)}</p>
-        </div>
-        <div className="dashboard-card">
-          <h3>{t.dashboard.stats.customerCount}</h3>
-          <p className="stat-number">{stats?.customerCount ?? 0}</p>
-        </div>
-      </div>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        {statCards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-[1.75rem] border border-outline/15 bg-white/85 p-5 shadow-[0_14px_32px_rgba(72,46,35,0.08)]"
+          >
+            <p className="text-sm text-on-surface-variant">{card.label}</p>
+            <p className="mt-4 font-headline text-4xl text-on-surface">{card.value}</p>
+          </div>
+        ))}
+      </section>
 
-      <div className="dashboard-grid dashboard-grid-secondary">
-        <div className="dashboard-card">
-          <h3>{t.dashboard.stats.pendingRescheduleRequests}</h3>
-          <p className="stat-number">{stats?.pendingRescheduleRequests ?? 0}</p>
+      <section className={adminPanelClass}>
+        <div className={adminPanelHeaderClass}>
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-tertiary">{t.layout.bookings}</p>
+            <h2 className="mt-2 font-headline text-2xl text-on-surface">{t.dashboard.upcomingTitle}</h2>
+          </div>
         </div>
-      </div>
 
-      <section className="admin-panel">
-        <div className="section-header">
-          <h2>{t.dashboard.upcomingTitle}</h2>
-        </div>
         {!stats?.upcomingBookings?.length ? (
-          <p className="empty-state">{t.dashboard.emptyUpcoming}</p>
+          <p className={adminEmptyStateClass}>{t.dashboard.emptyUpcoming}</p>
         ) : (
-          <div className="admin-list">
+          <div className={adminListClass}>
             {stats.upcomingBookings.map((booking) => (
-              <div key={booking.id} className="admin-list-item">
-                <div>
-                  <strong>{booking.customerName}</strong>
-                  <p>{booking.serviceName}</p>
+              <div key={booking.id} className={adminCardListItemClass}>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-lg font-semibold text-on-surface">{booking.customerName}</p>
+                    <p className="mt-1 text-sm text-on-surface-variant">{booking.serviceName}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className={getAdminStatusChipClass(booking.status)}>
+                      {getAdminStatusLabel(t, booking.status)}
+                    </span>
+                  </div>
                 </div>
-                <div className="admin-list-meta">
-                  <span>{formatDateTime(booking.startTime)}</span>
-                  <span className={`status-chip status-${booking.status}`}>{getAdminStatusLabel(t, booking.status)}</span>
-                </div>
+                <p className="mt-4 text-sm text-on-surface-variant">{formatDateTime(booking.startTime)}</p>
               </div>
             ))}
           </div>
