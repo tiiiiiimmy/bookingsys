@@ -13,7 +13,7 @@ var databaseSettings = DatabaseSettings.FromEnvironment();
 var jwtSettings = JwtSettings.FromEnvironment();
 var stripeSettings = StripeSettings.FromEnvironment();
 var emailSettings = EmailSettings.FromEnvironment();
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5001";
 
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
@@ -30,6 +30,7 @@ builder.Services.AddHttpClient<StripeService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<AvailabilityService>();
 builder.Services.AddScoped<BookingService>();
+builder.Services.AddScoped<ProductOrderService>();
 
 builder.Services.AddCors(options =>
 {
