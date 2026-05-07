@@ -44,6 +44,40 @@ public sealed class StripeService
             ["metadata[booking_id]"] = bookingId.ToString(),
         });
 
+        return await SendPaymentIntentRequestAsync(request, currency, cancellationToken);
+    }
+
+    public async Task<StripePaymentIntentDto> CreateProductOrderPaymentIntentAsync(
+        int amountCents,
+        string currency,
+        int orderId,
+        string customerEmail,
+        string description,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "payment_intents");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _stripeSettings.SecretKey);
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["amount"] = amountCents.ToString(),
+            ["currency"] = currency,
+            ["automatic_payment_methods[enabled]"] = "true",
+            ["receipt_email"] = customerEmail,
+            ["description"] = description,
+            ["metadata[order_type]"] = "product_order",
+            ["metadata[product_order_id]"] = orderId.ToString(),
+        });
+
+        return await SendPaymentIntentRequestAsync(request, currency, cancellationToken);
+    }
+
+    private async Task<StripePaymentIntentDto> SendPaymentIntentRequestAsync(
+        HttpRequestMessage request,
+        string currency,
+        CancellationToken cancellationToken)
+    {
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
