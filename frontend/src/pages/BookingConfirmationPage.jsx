@@ -67,7 +67,7 @@ const BookingConfirmationPage = () => {
     };
 
     loadBooking();
-    intervalId = window.setInterval(loadBooking, 5000);
+    intervalId = window.setInterval(loadBooking, 5001);
 
     return () => {
       isMounted = false;
