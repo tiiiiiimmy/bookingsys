@@ -1,0 +1,583 @@
+.psychic-page {
+  overflow: hidden;
+  background: linear-gradient(198.14deg, #e6d4ff 0.16%, #f0fcff 49.42%, #ffedfa 99%);
+}
+
+.psychic-scale {
+  width: 1920px;
+  height: 6000px;
+  transform-origin: top left;
+}
+
+@media (min-width: 1920px) {
+  .psychic-scale {
+    margin: 0 auto;
+    transform-origin: top center;
+  }
+}
+
+.psychic-canvas {
+  position: relative;
+  width: 1920px;
+  height: 6000px;
+  overflow: hidden;
+  background: linear-gradient(198.14deg, #e6d4ff 0.16%, #f0fcff 49.42%, #ffedfa 99%);
+  color: #3f3f3f;
+}
+
+.psychic-canvas button,
+.psychic-canvas input {
+  font: inherit;
+}
+
+.psychic-header button {
+  font: inherit;
+}
+
+.psychic-header {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 20;
+  width: 1920px;
+  height: 96px;
+  padding-top: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.00) 0%, #FFF 108.24%);
+  backdrop-filter: blur(6.400000095367432px);
+  transform: translateX(-50%) scale(var(--page-scale, 1));
+  transform-origin: top center;
+}
+
+.brand-mark {
+  position: absolute;
+  top: 22px;
+  left: 26px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: #3f3f3f;
+  font-family: Manrope, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.brand-mark img {
+  width: 34px;
+  height: 35.876px;
+  flex: 0 0 auto;
+}
+
+.top-nav {
+  position: absolute;
+  top: 26px;
+  right: 26px;
+  display: flex;
+  width: 459.2px;
+  padding: 10px;
+  justify-content: space-between;
+  color: #3f3f3f;
+  font-family: Manrope, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.top-nav button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: normal;
+  padding: 0;
+}
+
+.crystal {
+  position: absolute;
+  z-index: 1;
+  opacity: 0.5;
+}
+
+.crystal::before,
+.crystal::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 100%;
+  height: 1px;
+  transform: translate(-50%, -50%);
+  background: rgba(134, 56, 186, 0.28);
+}
+
+.crystal::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.crystal-a {
+  top: 8px;
+  right: -50px;
+  width: 220px;
+  height: 220px;
+  transform: rotate(-74deg);
+}
+
+.crystal-b {
+  top: 303px;
+  left: 900px;
+  width: 180px;
+  height: 180px;
+  transform: rotate(28deg);
+}
+
+.crystal-c {
+  top: 510px;
+  left: 580px;
+  width: 128px;
+  height: 128px;
+  transform: rotate(22deg);
+}
+
+.crystal-d {
+  top: 565px;
+  left: 100px;
+  width: 86px;
+  height: 86px;
+  transform: rotate(16deg);
+}
+
+.hero-section h1 {
+  position: absolute;
+  top: 308px;
+  left: 76px;
+  z-index: 4;
+  margin: 0;
+  color: #010e4c;
+  font-family: MonteCarlo, cursive;
+  font-size: 250px;
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.hero-section img {
+  position: absolute;
+  top: 591px;
+  left: 30px;
+  width: 1859px;
+  height: 1064px;
+  border-radius: 32px;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.products-section > h2,
+.services-section > h2 {
+  position: absolute;
+  margin: 0;
+  color: #494949;
+  font-family: "Monotype Corsiva", "Apple Chancery", "Brush Script MT", "Cormorant Garamond", serif;
+  font-size: 96px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.products-section > h2 {
+  top: 1769px;
+  left: 123px;
+}
+
+.services-section > h2 {
+  top: 3929px;
+  left: 88px;
+}
+
+.product-block,
+.product-gradient,
+.product-image,
+.product-block h3,
+.product-block p,
+.product-block button {
+  position: absolute;
+}
+
+.product-gradient {
+  left: 66px;
+  width: 1503px;
+  height: 482px;
+  overflow: hidden;
+  border: 1px solid #aafeff;
+  border-radius: 12px;
+  background: linear-gradient(107.16deg, #ffffff 17.78%, #f9ebff 17.97%, #f9ddff 31.59%, #f3d970 89.09%, #ffbe31 108.99%);
+  pointer-events: none;
+}
+
+.product-block h3 {
+  z-index: 5;
+  margin: 0;
+  color: #494949;
+  font-family: "Monotype Corsiva", "Apple Chancery", "Brush Script MT", MonteCarlo, cursive;
+  font-size: 210px;
+  font-weight: 400;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.product-block p {
+  z-index: 5;
+  width: 746px;
+  margin: 0;
+  color: #494949;
+  font-family: "Kantumruy Pro", Manrope, sans-serif;
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 1.1;
+}
+
+.product-block button {
+  z-index: 6;
+  width: 141px;
+  height: 53px;
+  border: 0;
+  border-radius: 10px;
+  background: #fd84ff;
+  color: #3f3f3f;
+  font-family: MonteCarlo, cursive;
+  font-size: 40px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.product-one .product-gradient {
+  top: 1935px;
+}
+
+.product-one .product-image {
+  top: 1757px;
+  left: 846px;
+  z-index: 4;
+  width: 1005px;
+  height: 952px;
+  pointer-events: none;
+}
+
+.product-one h3 {
+  top: 1935px;
+  right: 980px;
+}
+
+.product-one p {
+  top: 2183px;
+  left: 123px;
+}
+
+.product-one button {
+  top: 2322px;
+  left: 120px;
+}
+
+.product-two .product-gradient {
+  top: 2609px;
+}
+
+.product-two .product-image {
+  top: 2323px;
+  left: 693px;
+  z-index: 4;
+  width: 1202px;
+  height: 1157px;
+  pointer-events: none;
+}
+
+.product-two h3 {
+  top: 2609px;
+  right: 1145px;
+}
+
+.product-two p {
+  top: 2857px;
+  left: 123px;
+}
+
+.product-two button {
+  top: 2996px;
+  left: 120px;
+}
+
+.product-three .product-gradient {
+  top: 3330px;
+}
+
+.product-three .product-image {
+  top: 3120px;
+  left: 853px;
+  z-index: 4;
+  width: 1005px;
+  height: 952px;
+  pointer-events: none;
+}
+
+.product-three h3 {
+  top: 3330px;
+  right: 1023px;
+}
+
+.product-three p {
+  top: 3578px;
+  left: 123px;
+}
+
+.product-three button {
+  top: 3383px;
+  left: 120px;
+}
+
+.services-image {
+  position: absolute;
+  top: 4048px;
+  left: 73px;
+  width: 753px;
+  height: 741px;
+  border-radius: 32px;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.services-copy {
+  position: absolute;
+  top: 4099px;
+  left: 929px;
+  width: 870px;
+}
+
+.services-copy h3 {
+  margin: 0;
+  color: #494949;
+  font-family: MonteCarlo, cursive;
+  font-size: 160px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.reading-options {
+  display: flex;
+  margin-top: 90px;
+}
+
+.reading-option {
+  position: relative;
+  width: 290px;
+  min-height: 121px;
+  padding: 18px 0 0 17px;
+  border: 0;
+  border-left: 2px solid rgba(73, 73, 73, 0.35);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reading-option span {
+  display: block;
+  color: #494949;
+  font-family: Manrope, sans-serif;
+  font-size: 33.6px;
+  font-weight: 800;
+  line-height: 45.6px;
+}
+
+.reading-option small {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.reading-option strong {
+  display: block;
+  color: #c419c7;
+  font-family: Manrope, sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.services-copy > p {
+  width: 870px;
+  margin: 40px 0 0;
+  color: rgba(73, 73, 73, 0.33);
+  font-family: Manrope, sans-serif;
+  font-size: 24px;
+  line-height: 1.5;
+}
+
+.booking-form {
+  position: relative;
+  width: 870px;
+  height: 86px;
+  margin-top: 40px;
+}
+
+.booking-form label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.booking-form input {
+  position: absolute;
+  inset: 0;
+  width: 870px;
+  height: 86px;
+  padding: 20px 348px 20px 29px;
+  border: 1px solid rgba(73, 73, 73, 0.2);
+  border-radius: 14px;
+  background: #ffffff;
+  color: #494949;
+  font-family: Manrope, sans-serif;
+  font-size: 20px;
+  outline: none;
+}
+
+.booking-form input::placeholder {
+  color: rgba(73, 73, 73, 0.33);
+}
+
+.booking-form button {
+  position: absolute;
+  top: 7px;
+  right: 10px;
+  width: 319px;
+  height: 72px;
+  border: 0;
+  border-radius: 10px;
+  background: #8638ba;
+  color: #f9f9f9;
+  font-family: Manrope, sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 33.6px;
+  cursor: pointer;
+}
+
+.about-section {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.about-art {
+  position: absolute;
+  top: 4970px;
+  left: 516px;
+  z-index: 1;
+  width: 874px;
+  height: 993px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.reader-label {
+  position: absolute;
+  top: 5107px;
+  left: 124px;
+  z-index: 4;
+  margin: 0;
+  color: #3f3f3f;
+  font-family: MonteCarlo, cursive;
+  font-size: 64px;
+  line-height: 1;
+  text-transform: capitalize;
+}
+
+.reader-name {
+  position: absolute;
+  top: 5097px;
+  left: 406px;
+  z-index: 4;
+  margin: 0;
+  color: #3f3f3f;
+  font-family: MonteCarlo, cursive;
+  font-size: 200px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.about-cta {
+  position: absolute;
+  top: 5723px;
+  left: 144px;
+  z-index: 5;
+  width: 558px;
+  height: 83px;
+  border: 0;
+  border-radius: 999px;
+  background: #72f4f7;
+  color: #3f3f3f;
+  font-family: Manrope, sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.about-card {
+  position: absolute;
+  z-index: 4;
+  width: 462px;
+  padding: 30px;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #3f3f3f;
+  font-family: Manrope, sans-serif;
+  pointer-events: auto;
+}
+
+.about-card-left {
+  top: 5389px;
+  left: 144px;
+}
+
+.about-card-right {
+  top: 5182px;
+  left: 1306px;
+}
+
+.about-card h3 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.about-card ul {
+  margin: 50px 0 0;
+  padding-left: 30px;
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.about-card li + li {
+  margin-top: 0;
+}
+
+.about-section h2 {
+  position: absolute;
+  top: 5562px;
+  left: 1264px;
+  z-index: 5;
+  margin: 0;
+  color: #494949;
+  font-family: MonteCarlo, cursive;
+  font-size: 200px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.about-section h2 span {
+  display: block;
+  margin-left: 222px;
+}
