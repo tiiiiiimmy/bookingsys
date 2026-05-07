@@ -100,10 +100,13 @@ public sealed class BookingService
                 throw new ApiException(StatusCodes.Status400BadRequest, "Invalid service type");
             }
 
-            var technician = await GetTechnicianAsync(connection, transaction, request.TechnicianId, cancellationToken);
-            if (technician is null || !technician.IsActive)
+            if (request.TechnicianId.HasValue)
             {
-                throw new ApiException(StatusCodes.Status400BadRequest, "Invalid technician");
+                var technician = await GetTechnicianAsync(connection, transaction, request.TechnicianId.Value, cancellationToken);
+                if (technician is null || !technician.IsActive)
+                {
+                    throw new ApiException(StatusCodes.Status400BadRequest, "Invalid technician");
+                }
             }
 
             var customerId = await FindOrCreateCustomerAsync(connection, transaction, request.Customer, cancellationToken);

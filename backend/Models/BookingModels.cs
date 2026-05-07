@@ -60,7 +60,7 @@ public sealed class CreateBookingRequest
     public int ServiceTypeId { get; init; }
 
     [Range(1, int.MaxValue)]
-    public int TechnicianId { get; init; }
+    public int? TechnicianId { get; init; }
 
     public DateTime? StartTime { get; init; }
 
