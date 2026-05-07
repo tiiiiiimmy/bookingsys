@@ -1,0 +1,18 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: myapp-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    ports:
+      - "127.0.0.1:5000:8080"
+    networks:
+      - mysql_net
+
+networks:
+  mysql_net:
+    external: true
+    name: mysql_default

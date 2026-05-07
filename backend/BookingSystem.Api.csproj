@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <Content Include="**/*.sql" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="MySqlConnector" Version="2.4.0" />
   </ItemGroup>
 </Project>
