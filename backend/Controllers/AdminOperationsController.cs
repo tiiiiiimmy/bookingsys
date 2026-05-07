@@ -11,10 +11,12 @@ namespace BookingSystem.Backend.Controllers;
 public sealed class AdminOperationsController : ControllerBase
 {
     private readonly BookingService _bookingService;
+    private readonly ProductOrderService _productOrderService;
 
-    public AdminOperationsController(BookingService bookingService)
+    public AdminOperationsController(BookingService bookingService, ProductOrderService productOrderService)
     {
         _bookingService = bookingService;
+        _productOrderService = productOrderService;
     }
 
     [HttpGet("bookings")]
@@ -72,6 +74,39 @@ public sealed class AdminOperationsController : ControllerBase
     {
         var result = await _bookingService.GetCustomersAsync(search, cancellationToken);
         return Ok(new ApiResponse<IReadOnlyList<CustomerSummaryDto>> { Data = result });
+    }
+
+    [HttpGet("product-orders")]
+    public async Task<IActionResult> GetProductOrders(
+        [FromQuery] string? status,
+        [FromQuery] string? search,
+        CancellationToken cancellationToken)
+    {
+        var result = await _productOrderService.GetAdminProductOrdersAsync(status, search, cancellationToken);
+        return Ok(new ApiResponse<IReadOnlyList<ProductOrderListItemDto>> { Data = result });
+    }
+
+    [HttpGet("product-orders/{id:int}")]
+    public async Task<IActionResult> GetProductOrderById(int id, CancellationToken cancellationToken)
+    {
+        var result = await _productOrderService.GetProductOrderByIdAsync(id, cancellationToken);
+        if (result is null)
+        {
+            return NotFound(new ApiErrorEnvelope { Error = new ApiError { Message = "Product order not found" } });
+        }
+
+        return Ok(new ApiResponse<ProductOrderDto> { Data = result });
+    }
+
+    [HttpPost("product-orders/{id:int}/fulfill")]
+    public async Task<IActionResult> FulfillProductOrder(int id, CancellationToken cancellationToken)
+    {
+        var result = await _productOrderService.FulfillProductOrderAsync(id, cancellationToken);
+        return Ok(new ApiResponse<ProductOrderDto>
+        {
+            Data = result,
+            Message = "Product order fulfilled",
+        });
     }
 
     [HttpGet("customers/{id:int}")]

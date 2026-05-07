@@ -19,6 +19,8 @@ public sealed class DatabaseInitializer
         ["011_add_booking_group_token.sql"] = 11,
         ["012_add_arrived_booking_status.sql"] = 12,
         ["013_add_technicians_and_manual_booking_fields.sql"] = 13,
+        ["014_create_product_orders.sql"] = 14,
+        ["015_allow_psychic_reading_durations.sql"] = 15,
     };
 
     private readonly MySqlConnectionFactory _connectionFactory;
