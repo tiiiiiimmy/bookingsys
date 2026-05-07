@@ -7,7 +7,7 @@ namespace BookingSystem.Backend.Services;
 
 public sealed class AvailabilityService
 {
-    private const int SlotMinutes = 30;
+    private const int SlotMinutes = 10;
 
     private readonly MySqlConnectionFactory _connectionFactory;
 
@@ -24,7 +24,7 @@ public sealed class AvailabilityService
     {
         if (durationMinutes <= 0 || durationMinutes % SlotMinutes != 0)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Duration must be a positive multiple of 30 minutes");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Duration must be a positive multiple of 10 minutes");
         }
 
         if (requestedDate < DateOnly.FromDateTime(DateTime.Today))

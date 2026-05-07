@@ -133,7 +133,7 @@ public sealed class BookingService
                     request.TechnicianId,
                     cancellationToken);
 
-                var bookingPriceCents = CalculateBookingPriceCents(serviceType.PriceCents, durationMinutes);
+                var bookingPriceCents = CalculateBookingPriceCents(serviceType.PriceCents);
                 var manageToken = GenerateManageToken();
                 var bookingId = await InsertPendingBookingAsync(
                     connection,
@@ -1760,9 +1760,9 @@ public sealed class BookingService
             throw new ApiException(StatusCodes.Status400BadRequest, "Booking duration is invalid");
         }
 
-        if (durationMinutes < 30 || durationMinutes % 30 != 0)
+        if (durationMinutes < 10 || durationMinutes % 10 != 0)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Booking duration must be a multiple of 30 minutes");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Booking duration must be a multiple of 10 minutes");
         }
     }
 
@@ -1771,10 +1771,9 @@ public sealed class BookingService
         return (int)Math.Round((endTime - startTime).TotalMinutes);
     }
 
-    private static int CalculateBookingPriceCents(int serviceBlockPriceCents, int durationMinutes)
+    private static int CalculateBookingPriceCents(int servicePriceCents)
     {
-        var blockCount = durationMinutes / 30;
-        return serviceBlockPriceCents * blockCount;
+        return servicePriceCents;
     }
 
     private static void EnsureRescheduleDurationMatches(int durationMinutes, DateTime startTime, DateTime endTime)
