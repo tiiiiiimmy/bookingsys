@@ -66,6 +66,8 @@ export default {
         headline: ['"Noto Serif TC"', 'serif'],
         body: ['Manrope', 'sans-serif'],
         label: ['Manrope', 'sans-serif'],
+        magic: ['MonteCarlo', 'cursive'],
+        script: ['Cormorant Garamond', 'serif'],
       },
     },
   },
