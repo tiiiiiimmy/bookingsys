@@ -75,3 +75,4 @@
 
 ```
 
+Commit one or two files in one commit, don't commit all the files in one commit
