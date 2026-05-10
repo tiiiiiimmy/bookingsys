@@ -16,12 +16,23 @@ public sealed class ProductOrdersController : ControllerBase
         _productOrderService = productOrderService;
     }
 
-    // Public — customer submits a product order
+    // Public — customer submits a product order, returns Stripe payment data
     [HttpPost("product-orders")]
     public async Task<IActionResult> Create([FromBody] CreateProductOrderRequest request, CancellationToken cancellationToken)
     {
-        var order = await _productOrderService.CreateAsync(request, cancellationToken);
-        return Ok(new ApiResponse<ProductOrderDto> { Data = order, Message = "Order submitted successfully." });
+        var payment = await _productOrderService.CreateAsync(request, cancellationToken);
+        return Ok(new ApiResponse<CreateProductOrderPaymentResponseDto> { Data = payment });
+    }
+
+    // Public — get order status (for confirmation page)
+    [HttpGet("product-orders/{id:int}")]
+    public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
+    {
+        var order = await _productOrderService.GetByIdAsync(id, cancellationToken);
+        if (order is null)
+            return NotFound(new ApiResponse<object?> { Message = "Order not found." });
+
+        return Ok(new ApiResponse<ProductOrderDto> { Data = order });
     }
 
     // Admin — list all product orders
