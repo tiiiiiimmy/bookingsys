@@ -5,6 +5,10 @@ const productOrderService = {
     const response = await api.post('/product-orders', payload);
     return response.data;
   },
+  getById: async (id) => {
+    const response = await api.get(`/product-orders/${id}`);
+    return response.data;
+  },
   getAll: async (status) => {
     const params = status ? { status } : {};
     const response = await api.get('/admin/product-orders', { params });
