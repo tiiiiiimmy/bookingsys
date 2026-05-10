@@ -19,6 +19,8 @@ public sealed class DatabaseInitializer
         ["011_add_booking_group_token.sql"] = 11,
         ["012_add_arrived_booking_status.sql"] = 12,
         ["013_add_technicians_and_manual_booking_fields.sql"] = 13,
+        ["014_create_product_orders.sql"] = 14,
+        ["015_add_payment_to_product_orders.sql"] = 15,
     };
 
     private readonly MySqlConnectionFactory _connectionFactory;
@@ -32,6 +34,8 @@ public sealed class DatabaseInitializer
 
     public async Task RunMigrationsAsync(CancellationToken cancellationToken = default)
     {
+        await _connectionFactory.EnsureDatabaseExistsAsync(cancellationToken);
+
         var migrationsDirectory = Path.Combine(Directory.GetCurrentDirectory(), "src", "database", "migrations");
         var files = Directory.Exists(migrationsDirectory)
             ? Directory.GetFiles(migrationsDirectory, "*.sql")
