@@ -205,7 +205,11 @@ const HomePage = () => {
                 <button
                   type="button"
                   className="flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-95"
-                  style={{ background: 'linear-gradient(135deg, #d4b06a 0%, #b8965a 55%, #a07840 100%)' }}
+                  style={{
+                    border: '1px solid rgba(255,255,255,0.42)',
+                    background: 'linear-gradient(135deg, #d4b06a 0%, #b8965a 55%, #a07840 100%)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35)',
+                  }}
                   onClick={() => navigate('/booking')}
                 >
                   <span style={{ fontSize: '9px', opacity: 0.9 }}>✦</span>
@@ -221,7 +225,7 @@ const HomePage = () => {
                   }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(201,168,76,0.12)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'rgba(253,248,240,0.5)')}
-                  onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() => document.getElementById('white-magic')?.scrollIntoView({ behavior: 'smooth' })}
                 >
                   <span style={{ fontSize: '9px', opacity: 0.9 }}>✦</span>
                   Explore Services
