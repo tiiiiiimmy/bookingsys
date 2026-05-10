@@ -2,7 +2,6 @@ import React from 'react';
 import { Navigate, NavLink, Outlet } from 'react-router-dom';
 import useAdminLanguage from '../../hooks/useAdminLanguage';
 import { useAuth } from '../../hooks/useAuth';
-import AdminLanguageSwitcher from './AdminLanguageSwitcher';
 import {
   adminButtonSecondaryClass,
   adminLoadingClass,
@@ -18,7 +17,7 @@ const getNavLinkClass = ({ isActive }) =>
 
 const AdminLayout = () => {
   const { admin, logout, loading } = useAuth();
-  const { language, setLanguage, t } = useAdminLanguage();
+  const { t } = useAdminLanguage();
 
   if (loading) {
     return (
@@ -45,12 +44,6 @@ const AdminLayout = () => {
             <span className={getAdminStatusChipClass('active')}>{t.layout.brand}</span>
           </div>
 
-          <div className="mt-5">
-            <div aria-label={t.common.languageSwitcher}>
-              <AdminLanguageSwitcher language={language} setLanguage={setLanguage} />
-            </div>
-          </div>
-
           <nav className="mt-8">
             <ul className="space-y-2">
               <li>
@@ -71,6 +64,11 @@ const AdminLayout = () => {
               <li>
                 <NavLink className={getNavLinkClass} to="/admin/customers">
                   {t.layout.customers}
+                </NavLink>
+              </li>
+              <li>
+                <NavLink className={getNavLinkClass} to="/admin/product-orders">
+                  Product Orders
                 </NavLink>
               </li>
             </ul>
