@@ -1,24 +1,3 @@
-import { useEffect, useState } from 'react';
-import {
-  LANGUAGES,
-  PUBLIC_LANGUAGE_STORAGE_KEY,
-} from '../content/publicSiteContent';
-
-const LOCALE_BY_LANGUAGE = {
-  'zh-CN': 'zh-CN',
-  'zh-TW': 'zh-TW',
-  en: 'en-US',
-};
-
-const getStoredLanguage = () => {
-  if (typeof window === 'undefined') {
-    return 'en';
-  }
-
-  const stored = window.localStorage.getItem(PUBLIC_LANGUAGE_STORAGE_KEY);
-  return LANGUAGES.some((item) => item.code === stored) ? stored : 'en';
-};
-
 const normalizeDateInput = (value) => {
   if (!value) {
     return null;
@@ -28,20 +7,8 @@ const normalizeDateInput = (value) => {
 };
 
 export const usePublicLanguage = (copy) => {
-  const [language, setLanguage] = useState(getStoredLanguage);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(PUBLIC_LANGUAGE_STORAGE_KEY, language);
-    }
-
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = language;
-    }
-  }, [language]);
-
-  const locale = LOCALE_BY_LANGUAGE[language] || 'en-US';
-  const t = copy?.[language] ?? copy?.en ?? {};
+  const locale = 'en-US';
+  const t = copy?.en ?? copy ?? {};
 
   const formatMoney = (value, options = {}) => new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -68,7 +35,7 @@ export const usePublicLanguage = (copy) => {
     const date = normalizeDateInput(value);
     return date ? date.toLocaleString(locale, {
       year: 'numeric',
-      month: language === 'en' ? 'long' : 'numeric',
+      month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
@@ -77,8 +44,8 @@ export const usePublicLanguage = (copy) => {
   };
 
   return {
-    language,
-    setLanguage,
+    language: 'en',
+    setLanguage: () => {},
     t,
     locale,
     formatMoney,
