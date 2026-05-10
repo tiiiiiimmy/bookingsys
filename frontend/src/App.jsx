@@ -5,6 +5,8 @@ import HomePage from './pages/HomePage';
 import BookingPage from './pages/BookingPage';
 import BookingConfirmationPage from './pages/BookingConfirmationPage';
 import ManageBookingPage from './pages/ManageBookingPage';
+import ProductOrderPage from './pages/ProductOrderPage';
+import ProductOrderConfirmationPage from './pages/ProductOrderConfirmationPage';
 import LoginPage from './pages/admin/LoginPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import BookingsPage from './pages/admin/BookingsPage';
@@ -27,6 +29,8 @@ function App() {
           <Route path="/booking" element={<BookingPage />} />
           <Route path="/booking/confirmation/:bookingId" element={<BookingConfirmationPage />} />
           <Route path="/booking/manage/:token" element={<ManageBookingPage />} />
+          <Route path="/order" element={<ProductOrderPage />} />
+          <Route path="/order/confirmation/:orderId" element={<ProductOrderConfirmationPage />} />
 
           {/* Admin routes */}
           <Route path="/admin/login" element={<LoginPage />} />
