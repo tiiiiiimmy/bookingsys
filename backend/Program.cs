@@ -30,6 +30,7 @@ builder.Services.AddHttpClient<StripeService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<AvailabilityService>();
 builder.Services.AddScoped<BookingService>();
+builder.Services.AddScoped<ProductOrderService>();
 
 builder.Services.AddCors(options =>
 {
