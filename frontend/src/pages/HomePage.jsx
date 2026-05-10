@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ProductOrderModal from '../components/public/ProductOrderModal';
 import PublicSiteFooter from '../components/public/PublicSiteFooter';
 
 const NAV_LINKS = [
@@ -10,7 +9,7 @@ const NAV_LINKS = [
   { label: 'Love Spell', href: '#love-spell' },
   { label: 'Money Spell', href: '#money-spell' },
   { label: 'Psychic Reading', href: '#psychic-reading' },
-  { label: 'Contact', href: '#contact' },
+
 ];
 
 const SECTION_BACKGROUND =
@@ -45,7 +44,6 @@ const settleCta = (element, shadowColor) => {
 const HomePage = () => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [orderProduct, setOrderProduct] = useState(null);
   const closeMobile = () => setMobileOpen(false);
 
   return (
@@ -623,7 +621,7 @@ const HomePage = () => {
                   style={PRODUCT_CTA_STYLE}
                   onMouseEnter={e => liftCta(e.currentTarget, 'rgba(168,111,47,0.38)')}
                   onMouseLeave={e => settleCta(e.currentTarget, 'rgba(168,111,47,0.28)')}
-                  onClick={() => setOrderProduct('White Magic')}
+                  onClick={() => navigate('/order?product=White+Magic')}
                 >
                   Order White Magic
                   <span style={{ fontSize: '1rem', opacity: 0.9 }}>→</span>
@@ -755,7 +753,7 @@ const HomePage = () => {
                   style={PRODUCT_CTA_STYLE}
                   onMouseEnter={e => liftCta(e.currentTarget, 'rgba(168,111,47,0.38)')}
                   onMouseLeave={e => settleCta(e.currentTarget, 'rgba(168,111,47,0.28)')}
-                  onClick={() => setOrderProduct('Love Spell')}
+                  onClick={() => navigate('/order?product=Love+Spell')}
                 >
                   Order Love Spell
                   <span style={{ fontSize: '1rem', opacity: 0.9 }}>→</span>
@@ -857,7 +855,7 @@ const HomePage = () => {
                   style={PRODUCT_CTA_STYLE}
                   onMouseEnter={e => liftCta(e.currentTarget, 'rgba(168,111,47,0.38)')}
                   onMouseLeave={e => settleCta(e.currentTarget, 'rgba(168,111,47,0.28)')}
-                  onClick={() => setOrderProduct('Money Spell')}
+                  onClick={() => navigate('/order?product=Money+Spell')}
                 >
                   Order Money Spell
                   <span style={{ fontSize: '1rem', opacity: 0.9 }}>→</span>
@@ -992,10 +990,6 @@ const HomePage = () => {
       </main>
 
       <PublicSiteFooter />
-
-      {orderProduct && (
-        <ProductOrderModal productName={orderProduct} onClose={() => setOrderProduct(null)} />
-      )}
     </div>
   );
 };
