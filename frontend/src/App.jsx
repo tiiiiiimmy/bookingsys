@@ -10,6 +10,7 @@ import DashboardPage from './pages/admin/DashboardPage';
 import BookingsPage from './pages/admin/BookingsPage';
 import AvailabilityPage from './pages/admin/AvailabilityPage';
 import CustomersPage from './pages/admin/CustomersPage';
+import ProductOrdersPage from './pages/admin/ProductOrdersPage';
 import AdminLayout from './components/layout/AdminLayout';
 import useAdminLanguage from './hooks/useAdminLanguage';
 import './App.css';
@@ -35,6 +36,7 @@ function App() {
             <Route path="bookings" element={<BookingsPage />} />
             <Route path="availability" element={<AvailabilityPage />} />
             <Route path="customers" element={<CustomersPage />} />
+            <Route path="product-orders" element={<ProductOrdersPage />} />
           </Route>
 
           {/* Fallback */}
