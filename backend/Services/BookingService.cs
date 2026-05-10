@@ -17,6 +17,7 @@ public sealed class BookingService
     private readonly AppSettings _appSettings;
     private readonly StripeSettings _stripeSettings;
     private readonly ILogger<BookingService> _logger;
+    private readonly ProductOrderService _productOrderService;
 
     public BookingService(
         MySqlConnectionFactory connectionFactory,
@@ -25,7 +26,8 @@ public sealed class BookingService
         EmailService emailService,
         AppSettings appSettings,
         StripeSettings stripeSettings,
-        ILogger<BookingService> logger)
+        ILogger<BookingService> logger,
+        ProductOrderService productOrderService)
     {
         _connectionFactory = connectionFactory;
         _availabilityService = availabilityService;
@@ -34,6 +36,7 @@ public sealed class BookingService
         _appSettings = appSettings;
         _stripeSettings = stripeSettings;
         _logger = logger;
+        _productOrderService = productOrderService;
     }
 
     public async Task<IReadOnlyList<ServiceTypeDto>> GetServiceTypesAsync(CancellationToken cancellationToken = default)
@@ -1008,6 +1011,7 @@ public sealed class BookingService
             if (paymentRecord is null)
             {
                 await transaction.CommitAsync(cancellationToken);
+                await _productOrderService.HandlePaymentSucceededAsync(paymentIntentId, cancellationToken);
                 return;
             }
 
