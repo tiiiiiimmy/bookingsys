@@ -13,6 +13,11 @@ public sealed class DatabaseSettings
         return $"Server={Host};Port={Port};Database={Name};User ID={User};Password={Password};Allow User Variables=True;Treat Tiny As Boolean=True;";
     }
 
+    public string BuildConnectionStringWithoutDatabase()
+    {
+        return $"Server={Host};Port={Port};User ID={User};Password={Password};Allow User Variables=True;";
+    }
+
     public static DatabaseSettings FromEnvironment()
     {
         var password = Environment.GetEnvironmentVariable("DB_PASSWORD");
