@@ -1,11 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import PublicLanguageSwitcher from './PublicLanguageSwitcher';
 import PublicSiteFooter from './PublicSiteFooter';
 
 const PublicPageShell = ({
-  language,
-  setLanguage,
   brand,
   footer,
   navCopy,
@@ -37,7 +34,6 @@ const PublicPageShell = ({
             >
               {navCopy.booking}
             </Link>
-            <PublicLanguageSwitcher language={language} setLanguage={setLanguage} />
             <Link
               className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold tracking-wide text-on-primary transition-all hover:-translate-y-0.5 hover:bg-primary-container"
               to="/booking"
@@ -52,7 +48,7 @@ const PublicPageShell = ({
         {children}
       </main>
 
-      <PublicSiteFooter brand={brand} footer={footer} />
+      <PublicSiteFooter />
     </div>
   );
 };
