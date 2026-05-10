@@ -22,7 +22,7 @@ public sealed class StripeService
 
     public string PublishableKey => _stripeSettings.PublishableKey ?? string.Empty;
 
-    public async Task<StripePaymentIntentDto> CreatePaymentIntentAsync(
+    public Task<StripePaymentIntentDto> CreatePaymentIntentAsync(
         int amountCents,
         string currency,
         int bookingId,
@@ -30,19 +30,42 @@ public sealed class StripeService
         string description,
         CancellationToken cancellationToken = default)
     {
+        return CreatePaymentIntentAsync(
+            amountCents,
+            currency,
+            customerEmail,
+            description,
+            new Dictionary<string, string> { ["booking_id"] = bookingId.ToString() },
+            cancellationToken);
+    }
+
+    public async Task<StripePaymentIntentDto> CreatePaymentIntentAsync(
+        int amountCents,
+        string currency,
+        string customerEmail,
+        string description,
+        Dictionary<string, string>? metadata = null,
+        CancellationToken cancellationToken = default)
+    {
         EnsureConfigured();
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "payment_intents");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _stripeSettings.SecretKey);
-        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        var fields = new Dictionary<string, string>
         {
             ["amount"] = amountCents.ToString(),
             ["currency"] = currency,
             ["automatic_payment_methods[enabled]"] = "true",
             ["receipt_email"] = customerEmail,
             ["description"] = description,
-            ["metadata[booking_id]"] = bookingId.ToString(),
-        });
+        };
+        if (metadata != null)
+        {
+            foreach (var kvp in metadata)
+                fields[$"metadata[{kvp.Key}]"] = kvp.Value;
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "payment_intents");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _stripeSettings.SecretKey);
+        request.Content = new FormUrlEncodedContent(fields);
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
