@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AdminLanguageSwitcher from '../../components/layout/AdminLanguageSwitcher';
 import useAdminLanguage from '../../hooks/useAdminLanguage';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -10,7 +9,7 @@ import {
 } from '../../components/admin/adminStyles';
 
 const LoginPage = () => {
-  const { language, setLanguage, t } = useAdminLanguage();
+  const { t } = useAdminLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -39,11 +38,6 @@ const LoginPage = () => {
         <section className="rounded-[2rem] border border-outline/15 bg-[linear-gradient(150deg,rgba(143,77,47,0.94),rgba(63,42,31,0.95))] p-8 text-white shadow-[0_24px_60px_rgba(63,42,31,0.28)] md:p-10">
           <p className="text-xs uppercase tracking-[0.3em] text-orange-100/80">{t.layout.brand}</p>
           <h1 className="mt-5 max-w-md font-headline text-5xl leading-tight md:text-6xl">{t.login.title}</h1>
-          <div className="mt-10">
-            <div aria-label={t.common.languageSwitcher}>
-              <AdminLanguageSwitcher language={language} setLanguage={setLanguage} />
-            </div>
-          </div>
         </section>
 
         <section className="rounded-[2rem] border border-outline/15 bg-white/88 p-8 shadow-[0_24px_60px_rgba(72,46,35,0.08)] backdrop-blur md:p-10">
