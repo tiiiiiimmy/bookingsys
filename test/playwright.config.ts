@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import { defineBddConfig } from 'playwright-bdd';
-import { env } from './support/env.js';
+import { env, backendProcessEnv } from './support/env.js';
 
 const testDir = defineBddConfig({
   features: ['features/**/*.feature'],
@@ -22,7 +22,7 @@ export default defineConfig({
     {
       command: 'dotnet run --project BookingSystem.Api.csproj',
       cwd: env.backendDir,
-      env: { DB_NAME: env.db.database },
+      env: backendProcessEnv(),
       url: `${env.apiUrl}/bookings/service-types`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

@@ -22,6 +22,8 @@ export const env = {
     password: process.env.DB_PASSWORD ?? '',
   },
   stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY ?? '',
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY ?? '',
     webhookSecret: required('STRIPE_WEBHOOK_SECRET'),
   },
   backendDir: process.env.BACKEND_DIR ?? '../backend',
@@ -30,4 +32,22 @@ export const env = {
 // Hard safety guard: refuse to run against a non-test database.
 if (!/test/i.test(env.db.database)) {
   throw new Error(`Refusing to run: DB_NAME="${env.db.database}" does not look like a test DB.`);
+}
+
+/**
+ * Env vars injected into the backend process so it uses the isolated test DB
+ * and Stripe test keys. With the EnvLoader fix (real env wins over .env), these
+ * override backend/.env without editing it.
+ */
+export function backendProcessEnv(): Record<string, string> {
+  return {
+    DB_HOST: env.db.host,
+    DB_PORT: String(env.db.port),
+    DB_NAME: env.db.database,
+    DB_USER: env.db.user,
+    DB_PASSWORD: env.db.password,
+    STRIPE_SECRET_KEY: env.stripe.secretKey,
+    STRIPE_PUBLISHABLE_KEY: env.stripe.publishableKey,
+    STRIPE_WEBHOOK_SECRET: env.stripe.webhookSecret,
+  };
 }

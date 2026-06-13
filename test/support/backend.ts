@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { env } from './env.js';
+import { env, backendProcessEnv } from './env.js';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const backendDir = path.resolve(dir, '..', env.backendDir);
@@ -11,7 +11,7 @@ export function runBackendCommand(arg: '--migrate' | '--seed'): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn('dotnet', ['run', '--project', 'BookingSystem.Api.csproj', '--', arg], {
       cwd: backendDir,
-      env: { ...process.env, DB_NAME: env.db.database },
+      env: { ...process.env, ...backendProcessEnv() },
       stdio: 'inherit',
     });
     child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`${arg} exited ${code}`))));
