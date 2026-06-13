@@ -32,7 +32,13 @@ public static class EnvLoader
                 value = value[1..^1];
             }
 
-            Environment.SetEnvironmentVariable(key, value);
+            // Real environment variables take precedence over the .env file
+            // (standard dotenv behavior). This lets CI/tests inject overrides
+            // such as DB_NAME=app_test without editing backend/.env.
+            if (Environment.GetEnvironmentVariable(key) is null)
+            {
+                Environment.SetEnvironmentVariable(key, value);
+            }
         }
     }
 }
