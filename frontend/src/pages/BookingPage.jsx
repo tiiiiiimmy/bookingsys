@@ -451,6 +451,7 @@ const BookingPage = () => {
                         <button
                           key={service.id}
                           type="button"
+                          data-testid="booking-service-option"
                           className={`rounded-[1.5rem] border p-5 text-left transition-all ${
                             isSelected
                               ? 'border-primary bg-primary-fixed/50'
@@ -567,6 +568,7 @@ const BookingPage = () => {
                                   <button
                                     key={`${slot.startTime}-${slotIndex}`}
                                     type="button"
+                                    data-testid="booking-slot-item"
                                     className={`rounded-2xl border px-3 py-3 text-sm font-semibold transition-colors ${
                                       selected
                                         ? 'border-primary bg-primary text-on-primary'
@@ -630,6 +632,7 @@ const BookingPage = () => {
                   <button
                     type="button"
                     className="rounded-full bg-primary px-8 py-4 text-sm font-semibold text-on-primary transition-all hover:-translate-y-0.5 hover:bg-primary-container"
+                    data-testid="booking-next"
                     onClick={() => setStep(2)}
                   >
                     {bookingCopy.actions.next}
@@ -663,6 +666,7 @@ const BookingPage = () => {
                       className="w-full rounded-2xl border border-outline-variant bg-white px-4 py-3 text-on-surface outline-none transition-colors focus:border-primary"
                       id="firstName"
                       name="firstName"
+                      data-testid="booking-first-name"
                       required
                       type="text"
                       value={customerInfo.firstName}
@@ -676,6 +680,7 @@ const BookingPage = () => {
                       className="w-full rounded-2xl border border-outline-variant bg-white px-4 py-3 text-on-surface outline-none transition-colors focus:border-primary"
                       id="lastName"
                       name="lastName"
+                      data-testid="booking-last-name"
                       required
                       type="text"
                       value={customerInfo.lastName}
@@ -691,6 +696,7 @@ const BookingPage = () => {
                       className="w-full rounded-2xl border border-outline-variant bg-white px-4 py-3 text-on-surface outline-none transition-colors focus:border-primary"
                       id="email"
                       name="email"
+                      data-testid="booking-email"
                       required
                       type="email"
                       value={customerInfo.email}
@@ -704,6 +710,7 @@ const BookingPage = () => {
                       className="w-full rounded-2xl border border-outline-variant bg-white px-4 py-3 text-on-surface outline-none transition-colors focus:border-primary"
                       id="phone"
                       name="phone"
+                      data-testid="booking-phone"
                       required
                       type="tel"
                       value={customerInfo.phone}
@@ -736,6 +743,7 @@ const BookingPage = () => {
                   <button
                     type="submit"
                     className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-on-primary transition-all hover:-translate-y-0.5 hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-60"
+                    data-testid="booking-submit"
                     disabled={loading}
                   >
                     {loading ? bookingCopy.actions.creating : bookingCopy.actions.toPayment}

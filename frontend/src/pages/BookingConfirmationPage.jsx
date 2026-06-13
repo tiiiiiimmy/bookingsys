@@ -165,9 +165,11 @@ const BookingConfirmationPage = () => {
                 <SummaryRow label={confirmationCopy.labels.price} value={formatMoney(booking.price)} />
                 <div className="flex items-center justify-between gap-4 border-b border-outline-variant/60 py-3 text-sm">
                   <span className="text-on-surface-variant">{confirmationCopy.labels.status}</span>
-                  <PublicStatusChip tone={getToneForStatus(booking.status)}>
-                    {t.status.booking[booking.status] || booking.status}
-                  </PublicStatusChip>
+                  <span data-testid="booking-status-badge" data-status={booking.status}>
+                    <PublicStatusChip tone={getToneForStatus(booking.status)}>
+                      {t.status.booking[booking.status] || booking.status}
+                    </PublicStatusChip>
+                  </span>
                 </div>
                 <div className="flex items-center justify-between gap-4 py-3 text-sm">
                   <span className="text-on-surface-variant">{confirmationCopy.labels.paymentStatus}</span>
