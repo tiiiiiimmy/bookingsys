@@ -89,6 +89,7 @@ test/
 ## 5. Test data & environment strategy
 
 - **Isolation**: a dedicated `app_test` MySQL database, configured via `test/.env.test`. The real/production DB is never touched.
+- **Backend config injection**: the test harness injects `DB_*` and `STRIPE_*` (test keys) into the backend process via Playwright's `webServer.env` and the migrate/seed spawn. This relies on `backend/Configuration/EnvLoader` giving precedence to real environment variables over `backend/.env` (fixed to standard dotenv behavior). Result: `backend/.env` is never edited for tests — only `test/.env.test` + creating `app_test` are required. The forged-webhook signature and the backend verification share `STRIPE_WEBHOOK_SECRET` from this single injected source, so they always match.
 - **Baseline**: `global-setup.ts` runs the backend `--migrate` then `--seed` once before the suite, guaranteeing admin, service types, and business hours exist.
 - **Per-test independence**: every scenario generates unique data — timestamped customer emails (e.g. `cust+<ts>@test.local`), future booking dates — and asserts only on what it created, so scenarios never collide and are re-runnable.
 - **Cleanup**: automated teardown removes data the scenario created; transaction rollback is used where applicable (backend integration context). No full per-scenario DB wipe.
