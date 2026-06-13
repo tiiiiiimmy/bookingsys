@@ -1,0 +1,18 @@
+{
+  "name": "bookingsys-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2e": "bddgen && playwright test",
+    "test:e2e:ui": "bddgen && playwright test --ui",
+    "test:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "playwright-bdd": "^8.0.0",
+    "mysql2": "^3.11.0",
+    "dotenv": "^16.4.0",
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}
