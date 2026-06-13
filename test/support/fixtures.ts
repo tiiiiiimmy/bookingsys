@@ -21,4 +21,4 @@ export const test = base.extend<Fixtures>({
   customerEmail: async ({}, use) => use(`cust+${Date.now()}@test.local`),
 });
 
-export const { Given, When, Then } = createBdd(test);
+export const { Given, When, Then, Before, After, BeforeAll, AfterAll } = createBdd(test);
