@@ -74,6 +74,40 @@ export class BookingPage {
   }
 
   /**
+   * Fill the customer form with otherwise-valid values, but make one field invalid:
+   * a blank required field (`firstName`/`lastName`/`email`/`phone`) or a malformed
+   * email (`emailFormat`). Drives the HTML5 client-side validation cases.
+   */
+  async fillCustomerInvalid(field: string, validEmail: string) {
+    const values: Record<string, string> = {
+      firstName: 'Test',
+      lastName: 'Customer',
+      email: validEmail,
+      phone: '0211234567',
+    };
+    if (field === 'emailFormat') {
+      values.email = 'not-an-email';
+    } else {
+      values[field] = '';
+    }
+    await this.page.getByTestId('booking-first-name').fill(values.firstName);
+    await this.page.getByTestId('booking-last-name').fill(values.lastName);
+    await this.page.getByTestId('booking-email').fill(values.email);
+    await this.page.getByTestId('booking-phone').fill(values.phone);
+  }
+
+  /**
+   * Submit the customer form expecting client-side (HTML5 `required` / `type=email`)
+   * validation to block it: no booking is created and the form stays on the details
+   * step (the payment step is never reached).
+   */
+  async submitExpectingClientError() {
+    await this.page.getByTestId('booking-submit').click();
+    await expect(this.page.getByTestId('booking-submit')).toBeVisible();
+    await expect(this.page.getByTestId('booking-email')).toBeVisible();
+  }
+
+  /**
    * Submits the booking (Step 2) and returns the bookingId + clientSecret from
    * the POST /bookings response. The API wraps the payload as `{ data: {...} }`.
    */
