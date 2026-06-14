@@ -85,6 +85,21 @@ export async function adminGetBookings(
   return body?.data ?? body;
 }
 
+export type AvailableSlot = { startTime: string; endTime: string };
+
+/** Public availability for a date (raw response) — for slot-validation negatives. */
+export async function getSlotsResponse(date: string, duration: number): Promise<Response> {
+  return fetch(`${env.apiUrl}/availability/slots?date=${date}&duration=${duration}`);
+}
+
+/** Public availability slots for a date; throws on non-OK. */
+export async function getAvailableSlots(date: string, duration: number): Promise<AvailableSlot[]> {
+  const res = await getSlotsResponse(date, duration);
+  if (!res.ok) throw new Error(`GET availability slots failed: ${res.status} ${await res.text()}`);
+  const body = await res.json();
+  return (body?.data ?? body)?.slots ?? [];
+}
+
 /**
  * Seed an authenticated admin session into a browser page so the app boots logged in
  * (skips the UI login screen). Writes both tokens into localStorage via addInitScript,
