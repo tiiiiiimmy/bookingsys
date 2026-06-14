@@ -1,0 +1,290 @@
+# Azure Pipelines — Psychic Magic booking system (.NET 10 backend + React/Vite frontend)
+#
+# Adapted from a Node-backend sibling project that runs on the same self-hosted
+# agent / target cloud server. What is different here and why:
+#   - Backend is .NET 10 (dotnet build/run), NOT Node — provisioned via UseDotNet@2.
+#   - Frontend is React + Vite on :3000 (reads VITE_API_URL); backend on :5001.
+#   - Tests live in `test/` (not `tests/`) and are Playwright + playwright-bdd.
+#   - The test harness self-manages servers: `playwright.config.ts` `webServer`
+#     starts BOTH the .NET backend and the Vite frontend, and `globalSetup` runs
+#     migrate + seed against the test DB. So CI does NOT manually start/stop the
+#     servers or poll /health — Playwright does that. CI only provisions runtimes,
+#     ensures the test database exists, then runs the suite.
+#   - The suite is split: `@api` (contract/integration, no browser) vs browser E2E.
+#
+# Self-hosted agent prerequisites (pool "Default"):
+#   - Node.js + .NET 10 SDK are provisioned per-run (UseNode / UseDotNet).
+#   - MySQL 8 reachable from the agent, plus the `mysql` client; `az` CLI for the
+#     report upload.
+#
+# Pipeline variables to define (mark secrets as *secret*):
+#   - DB_PASSWORD            (secret) — test MySQL user password
+#   - AZURE_STORAGE_ACCOUNT           — blob static-website account (report hosting)
+#   - AZURE_STORAGE_KEY      (secret) — storage account key
+#   - AZURE_STATIC_SITE_URL           — public base URL of the static website
+#   The DB_*/ADMIN_*/STRIPE_WEBHOOK_SECRET below carry CI defaults; override as needed.
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  name: Default
+
+variables:
+  nodeVersion: '20.x'
+  dotnetVersion: '10.0.x'
+  BASE_URL: 'http://localhost:3000'
+  API_URL: 'http://localhost:5001/api'
+  # Isolated test database — DB_NAME MUST contain "test" (harness safety guard refuses otherwise).
+  DB_HOST: 'localhost'
+  DB_PORT: '3306'
+  DB_NAME: 'bookingsys_test'
+  DB_USER: 'bookingsys_test'
+  # DB_PASSWORD: defined as a secret pipeline variable.
+  # Webhook secret is ours to choose — payments are fully mocked in tests.
+  STRIPE_WEBHOOK_SECRET: 'whsec_ci_local_secret'
+  ADMIN_EMAIL: 'admin@massage.com'
+  ADMIN_PASSWORD: 'admin123'
+
+stages:
+  - stage: quality_gate
+    displayName: Quality gate
+    jobs:
+      - job: backend_build
+        displayName: Build backend (.NET)
+        timeoutInMinutes: 15
+        steps:
+          - checkout: self
+
+          - task: UseDotNet@2
+            displayName: Use .NET SDK $(dotnetVersion)
+            inputs:
+              packageType: sdk
+              version: $(dotnetVersion)
+
+          - script: dotnet restore BookingSystem.Api.csproj
+            displayName: Restore backend
+            workingDirectory: backend
+
+          - script: dotnet build BookingSystem.Api.csproj --no-restore
+            displayName: Build backend
+            workingDirectory: backend
+
+      - job: frontend_build
+        displayName: Build frontend
+        timeoutInMinutes: 15
+        steps:
+          - checkout: self
+
+          - task: UseNode@1
+            displayName: Use Node.js $(nodeVersion)
+            inputs:
+              version: $(nodeVersion)
+
+          - script: npm ci
+            displayName: Install frontend dependencies
+            workingDirectory: frontend
+
+          - script: npm run build
+            displayName: Build frontend
+            workingDirectory: frontend
+            env:
+              VITE_API_URL: $(API_URL)
+
+      - job: api_tests
+        displayName: API / contract tests (@api)
+        dependsOn: backend_build
+        timeoutInMinutes: 30
+        steps:
+          - checkout: self
+
+          - task: UseNode@1
+            displayName: Use Node.js $(nodeVersion)
+            inputs:
+              version: $(nodeVersion)
+
+          - task: UseDotNet@2
+            displayName: Use .NET SDK $(dotnetVersion)
+            inputs:
+              packageType: sdk
+              version: $(dotnetVersion)
+
+          - script: |
+              set -euo pipefail
+              mysql -h "$(DB_HOST)" -P "$(DB_PORT)" -u "$(DB_USER)" -p"$(DB_PASSWORD)" \
+                -e "CREATE DATABASE IF NOT EXISTS \`$(DB_NAME)\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            displayName: Ensure test database exists
+
+          - script: echo "VITE_API_URL=$(API_URL)" > frontend/.env
+            displayName: Point frontend at the test backend
+
+          # The harness starts the Vite dev server (webServer), so its deps are needed
+          # even for @api scenarios (Playwright waits for both servers before any test).
+          - script: npm ci
+            displayName: Install frontend dependencies
+            workingDirectory: frontend
+
+          - script: npm ci
+            displayName: Install test dependencies
+            workingDirectory: test
+
+          - script: |
+              set -euo pipefail
+              export DOTNET_CLI=dotnet
+              export DOTNET_ROOT="${DOTNET_ROOT:-$(dirname "$(command -v dotnet)")}"
+              npm run test:api
+            displayName: Run @api tests
+            workingDirectory: test
+            env:
+              CI: 'true'
+              BASE_URL: $(BASE_URL)
+              API_URL: $(API_URL)
+              DB_HOST: $(DB_HOST)
+              DB_PORT: $(DB_PORT)
+              DB_NAME: $(DB_NAME)
+              DB_USER: $(DB_USER)
+              DB_PASSWORD: $(DB_PASSWORD)
+              STRIPE_WEBHOOK_SECRET: $(STRIPE_WEBHOOK_SECRET)
+              ADMIN_EMAIL: $(ADMIN_EMAIL)
+              ADMIN_PASSWORD: $(ADMIN_PASSWORD)
+
+          - task: PublishTestResults@2
+            displayName: Publish @api JUnit results
+            condition: always()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: '$(Build.SourcesDirectory)/test/test-results/junit.xml'
+              testRunTitle: 'Booking API/contract tests - $(Build.SourceBranchName)'
+              mergeTestResults: true
+              failTaskOnFailedTests: true
+
+          - script: mkdir -p "$(Build.SourcesDirectory)/test/test-results"
+            displayName: Prepare API artifact directory
+            condition: always()
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish @api test results and traces
+            condition: always()
+            inputs:
+              targetPath: '$(Build.SourcesDirectory)/test/test-results'
+              artifact: 'api-test-results-attempt-$(System.JobAttempt)'
+              publishLocation: pipeline
+
+      - job: e2e_tests
+        displayName: Browser E2E tests
+        dependsOn:
+          - backend_build
+          - frontend_build
+        timeoutInMinutes: 45
+        steps:
+          - checkout: self
+
+          - task: UseNode@1
+            displayName: Use Node.js $(nodeVersion)
+            inputs:
+              version: $(nodeVersion)
+
+          - task: UseDotNet@2
+            displayName: Use .NET SDK $(dotnetVersion)
+            inputs:
+              packageType: sdk
+              version: $(dotnetVersion)
+
+          - script: |
+              set -euo pipefail
+              mysql -h "$(DB_HOST)" -P "$(DB_PORT)" -u "$(DB_USER)" -p"$(DB_PASSWORD)" \
+                -e "CREATE DATABASE IF NOT EXISTS \`$(DB_NAME)\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            displayName: Ensure test database exists
+
+          - script: echo "VITE_API_URL=$(API_URL)" > frontend/.env
+            displayName: Point frontend at the test backend
+
+          - script: npm ci
+            displayName: Install frontend dependencies
+            workingDirectory: frontend
+
+          - script: npm ci
+            displayName: Install test dependencies
+            workingDirectory: test
+
+          - script: npx playwright install chromium
+            displayName: Install Playwright Chromium
+            workingDirectory: test
+
+          - script: |
+              set -euo pipefail
+              export DOTNET_CLI=dotnet
+              export DOTNET_ROOT="${DOTNET_ROOT:-$(dirname "$(command -v dotnet)")}"
+              npm run test:e2e
+            displayName: Run browser E2E tests
+            workingDirectory: test
+            env:
+              CI: 'true'
+              BASE_URL: $(BASE_URL)
+              API_URL: $(API_URL)
+              VITE_API_URL: $(API_URL)
+              DB_HOST: $(DB_HOST)
+              DB_PORT: $(DB_PORT)
+              DB_NAME: $(DB_NAME)
+              DB_USER: $(DB_USER)
+              DB_PASSWORD: $(DB_PASSWORD)
+              STRIPE_WEBHOOK_SECRET: $(STRIPE_WEBHOOK_SECRET)
+              ADMIN_EMAIL: $(ADMIN_EMAIL)
+              ADMIN_PASSWORD: $(ADMIN_PASSWORD)
+
+          - task: PublishTestResults@2
+            displayName: Publish E2E JUnit results
+            condition: always()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: '$(Build.SourcesDirectory)/test/test-results/junit.xml'
+              testRunTitle: 'Booking browser E2E tests - $(Build.SourceBranchName)'
+              mergeTestResults: true
+              failTaskOnFailedTests: true
+
+          - script: |
+              mkdir -p "$(Build.SourcesDirectory)/test/playwright-report"
+              mkdir -p "$(Build.SourcesDirectory)/test/test-results"
+            displayName: Prepare artifact directories
+            condition: always()
+
+          - script: |
+              set -euo pipefail
+
+              REPORT_PATH="reports/$(Build.BuildId)-attempt-$(System.JobAttempt)"
+
+              az storage blob upload-batch \
+                --account-name "$(AZURE_STORAGE_ACCOUNT)" \
+                --account-key "$(AZURE_STORAGE_KEY)" \
+                --destination '$web' \
+                --destination-path "$REPORT_PATH" \
+                --source "$(Build.SourcesDirectory)/test/playwright-report" \
+                --overwrite true
+
+              echo "Playwright HTML report:"
+              echo "$(AZURE_STATIC_SITE_URL)/$REPORT_PATH/index.html"
+            displayName: Publish Playwright report to Azure Blob Static Website
+            condition: always()
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish Playwright report
+            condition: always()
+            inputs:
+              targetPath: '$(Build.SourcesDirectory)/test/playwright-report'
+              artifact: 'playwright-report-attempt-$(System.JobAttempt)'
+              publishLocation: pipeline
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish E2E test results and traces
+            condition: always()
+            inputs:
+              targetPath: '$(Build.SourcesDirectory)/test/test-results'
+              artifact: 'e2e-playwright-test-results-attempt-$(System.JobAttempt)'
+              publishLocation: pipeline

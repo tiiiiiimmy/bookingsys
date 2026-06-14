@@ -28,7 +28,11 @@ export default defineConfig({
   // run clean. The longer flows also need more headroom than 60s.
   retries: 2,
   timeout: 90_000,
-  reporter: [['html', { open: 'never' }], ['list']],
+  reporter: [
+    ['html', { open: 'never' }],
+    ['junit', { outputFile: 'test-results/junit.xml' }],
+    ['list'],
+  ],
   use: {
     baseURL: env.baseUrl,
     trace: 'retain-on-failure',
