@@ -35,3 +35,22 @@ Feature: Booking
     And I submit the booking
     And the payment succeeds
     Then all bookings for the customer are confirmed
+
+  Scenario: Payment failure is shown on the confirmation page
+    Given I am on the booking page
+    When I select the first available service and slot
+    And I enter my customer details
+    And I submit the booking
+    And the payment fails
+    And I open the booking confirmation page
+    Then I see the payment marked failed
+
+  Scenario: Confirmation page updates from processing to confirmed
+    Given I am on the booking page
+    When I select the first available service and slot
+    And I enter my customer details
+    And I submit the booking
+    And I open the booking confirmation page
+    Then I see the booking still processing
+    When the payment succeeds
+    Then I see the booking confirmed
