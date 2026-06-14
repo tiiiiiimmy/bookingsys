@@ -225,20 +225,20 @@ These resolve the exact messages/shapes the assertions need. Each spike reads ba
 
 ### Task 4.1: Per-product success (TC-OD-02)
 **Files:** `product-order.feature`, `order.steps.ts`
-- [ ] `Scenario Outline` over `Examples`: `White Magic`, `Love Spell`, `Money Spell` — reuse existing order steps parameterized by product name; assert `product_orders.status=paid`.
-- [ ] Commit: `test(e2e): TC-OD-02 per-product success path`.
+- [x] `Scenario Outline` over `Examples`: `White Magic`, `Love Spell`, `Money Spell` — reuse existing order steps parameterized by product name; assert `product_orders.status=paid`.
+- [x] Commit: `test(e2e): TC-OD-02 per-product success path`.
 
 ### Task 4.2: Unknown product + payment error + pending (TC-OD-03, 04, 05)
 **Files:** `product-order.feature`, `order.steps.ts`, `ProductOrderPage.ts`, `frontend/src/pages/ProductOrderPage.jsx`, `ProductOrderConfirmationPage.jsx`
-- [ ] Add `data-testid="order-not-found"` (the "Product not found" block) and `data-testid="order-error"` (payment error).
-- [ ] TC-OD-03: open `/order?product=Nope` → `ProductOrderPage.expectProductNotFound()`; assert no `product_orders` row for the test email.
-- [ ] TC-OD-04: submit order, then send a `payment_intent.payment_failed` webhook (or skip webhook per Task 0.4) → open confirmation, assert order stays `pending` (`order-status-badge` `data-status=pending`) and processing copy shows.
-- [ ] TC-OD-05: documented as the same assertion as TC-OD-04 unless Task 0.4 adds a backend failed-status handler; if not, mark with a note that failed product payments remain `pending` by design.
+- [x] Add `data-testid="order-not-found"` (the "Product not found" block) and `data-testid="order-error"` (payment error).
+- [x] TC-OD-03: open `/order?product=Nope` → `ProductOrderPage.expectProductNotFound()`; assert no `product_orders` row for the test email.
+- [x] TC-OD-04: submit order, then send a `payment_intent.payment_failed` webhook (or skip webhook per Task 0.4) → open confirmation, assert order stays `pending` (`order-status-badge` `data-status=pending`) and processing copy shows.
+- [x] TC-OD-05: documented as the same assertion as TC-OD-04 unless Task 0.4 adds a backend failed-status handler; if not, mark with a note that failed product payments remain `pending` by design.
 - [ ] Commit: `test(e2e): TC-OD-03/04/05 unknown product and non-paid states`.
 
 ### Task 4.3: Order form validation (TC-OD-06)
 **Files:** `product-order.feature`, `order.steps.ts`, `ProductOrderPage.ts`
-- [ ] `Scenario Outline`: missing first/last/email, invalid email → `ProductOrderPage.submitExpectingClientError()` (no `POST /product-orders` 2xx; HTML5 validation blocks); phone/intention optional (a success variant with them empty).
+- [x] `Scenario Outline`: missing first/last/email, invalid email → `ProductOrderPage.submitExpectingClientError()` (no `POST /product-orders` 2xx; HTML5 validation blocks); phone/intention optional (a success variant with them empty).
 - [ ] Commit: `test(e2e): TC-OD-06 order form validation`.
 
 ---
