@@ -239,7 +239,7 @@ These resolve the exact messages/shapes the assertions need. Each spike reads ba
 ### Task 4.3: Order form validation (TC-OD-06)
 **Files:** `product-order.feature`, `order.steps.ts`, `ProductOrderPage.ts`
 - [x] `Scenario Outline`: missing first/last/email, invalid email → `ProductOrderPage.submitExpectingClientError()` (no `POST /product-orders` 2xx; HTML5 validation blocks); phone/intention optional (a success variant with them empty).
-- [ ] Commit: `test(e2e): TC-OD-06 order form validation`.
+- [x] Commit: `test(e2e): TC-OD-06 order form validation`.
 
 ---
 

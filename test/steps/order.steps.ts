@@ -17,8 +17,16 @@ When('I enter my order details', async ({ customerEmail }) => {
   await orderPage.fillCustomer(customerEmail);
 });
 
+When('I enter order details with an invalid {string}', async ({ customerEmail }, field: string) => {
+  await orderPage.fillCustomerInvalid(field, customerEmail);
+});
+
 When('I submit the order', async () => {
   order = await orderPage.submitAndCapturePayment();
+});
+
+When('I submit the order form expecting a client-side error', async () => {
+  await orderPage.submitExpectingClientError();
 });
 
 When('the order payment succeeds', async () => {

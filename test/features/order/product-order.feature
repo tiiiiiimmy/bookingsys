@@ -44,3 +44,16 @@ Feature: Place a product order
     And I submit the order
     Then I see the order still processing
     And the product order is pending in the database
+
+  Scenario Outline: Product order form rejects invalid customer details
+    Given I am on the product order page for "White Magic"
+    When I enter order details with an invalid "<field>"
+    And I submit the order form expecting a client-side error
+    Then no product order is created for the customer
+
+    Examples:
+      | field       |
+      | firstName   |
+      | lastName    |
+      | email       |
+      | emailFormat |
