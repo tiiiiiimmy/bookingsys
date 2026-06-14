@@ -56,3 +56,27 @@ Feature: Reschedule a booking
     And the admin rejects the customer's reschedule request
     Then the reschedule request shows as rejected
     And the booking time is unchanged
+
+  Scenario: Reviewing an already-reviewed request is rejected
+    Given a confirmed booking with a pending reschedule request
+    When the admin approves the request via the API
+    And the admin reviews the same request again
+    Then the second review is rejected
+    And the booking time is unchanged
+
+  # KNOWN BACKEND DEFECT (kept as an expected failure, do not "fix" the test):
+  # ApproveRescheduleRequestAsync reads the request status with a plain non-locking
+  # SELECT (no `FOR UPDATE`), so two concurrent approvals of the same pending request
+  # both pass the "already reviewed" guard and both commit — exactly-one-wins is only
+  # enforced sequentially. Remove @fail once the read takes a row lock.
+  @fail
+  Scenario: Concurrent reviews of one request let only one win
+    Given a confirmed booking with a pending reschedule request
+    When two admins approve the request at the same time
+    Then exactly one review succeeds
+
+  Scenario: Approving one request rejects the booking's other pending requests
+    Given a confirmed booking with a pending reschedule request
+    And the booking has a second pending reschedule request
+    When the admin approves the request via the API
+    Then the other pending request is rejected

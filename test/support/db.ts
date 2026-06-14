@@ -233,6 +233,20 @@ export async function insertPendingBooking(input: {
   });
 }
 
+/** Seed an extra pending reschedule request for a booking (multi-pending side-effect tests). */
+export async function insertPendingReschedule(
+  bookingId: number,
+  startTime: string,
+  endTime: string,
+): Promise<number> {
+  const [res] = await db().query(
+    `INSERT INTO booking_reschedule_requests (booking_id, requested_start_time, requested_end_time, status)
+     VALUES (?, ?, ?, 'pending')`,
+    [bookingId, startTime, endTime],
+  );
+  return (res as { insertId: number }).insertId;
+}
+
 /** Manage token for the latest booking of a customer email. */
 export async function getManageToken(email: string) {
   return queryOne<{ manage_token: string }>(

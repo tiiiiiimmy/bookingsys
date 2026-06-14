@@ -9,11 +9,16 @@ import {
   getRescheduleRequestDetail,
   getRescheduleRequestsByBookingId,
   insertConfirmedBooking,
+  insertPendingReschedule,
   setBookingStatus,
 } from '../support/db.js';
 import { findNextWeekSlot, nextWeekOpenDate, toSqlDateTime } from '../support/dates.js';
 import { ManageBookingPage } from '../pages/ManageBookingPage.js';
-import { adminLogin, approveRescheduleRequest } from '../support/api.js';
+import {
+  adminLogin,
+  approveRescheduleRequest,
+  approveRescheduleRequestRaw,
+} from '../support/api.js';
 
 // Scenario-scoped state (steps run sequentially within a scenario).
 let bookingId: number;
@@ -179,4 +184,70 @@ Then('the booking time is unchanged', async () => {
   const times = (await getBookingTimes(bookingId))!;
   expect(new Date(times.start_time).getTime()).toBe(new Date(bookingTimesBefore.start_time).getTime());
   expect(new Date(times.end_time).getTime()).toBe(new Date(bookingTimesBefore.end_time).getTime());
+});
+
+// --- TC-RS-09/10/11: review edge cases (API/DB only) ---
+
+let requestId: number;
+let secondRequestId: number;
+let reviewResponse: Response;
+let concurrentResponses: Response[];
+
+Given('a confirmed booking with a pending reschedule request', async ({ customerEmail }) => {
+  const slot = await findNextWeekSlot();
+  const booking = await insertConfirmedBooking({
+    email: customerEmail,
+    startTime: toSqlDateTime(slot.startTime),
+    endTime: toSqlDateTime(slot.endTime),
+    serviceTypeId: 12,
+  });
+  bookingId = booking.bookingId;
+  // The booking now occupies `slot`, so the next free slot is a valid reschedule target.
+  const target = await findNextWeekSlot();
+  requestId = await insertPendingReschedule(bookingId, toSqlDateTime(target.startTime), toSqlDateTime(target.endTime));
+});
+
+Given('the booking has a second pending reschedule request', async () => {
+  const target = await findNextWeekSlot();
+  secondRequestId = await insertPendingReschedule(
+    bookingId,
+    toSqlDateTime(target.startTime),
+    toSqlDateTime(target.endTime),
+  );
+});
+
+When('the admin approves the request via the API', async ({ adminToken }) => {
+  const res = await approveRescheduleRequestRaw(adminToken, requestId);
+  expect(res.ok).toBe(true);
+  // Snapshot the post-approval times so a later already-reviewed attempt can prove they don't change.
+  bookingTimesBefore = (await getBookingTimes(bookingId))!;
+});
+
+When('the admin reviews the same request again', async ({ adminToken }) => {
+  reviewResponse = await approveRescheduleRequestRaw(adminToken, requestId);
+});
+
+Then('the second review is rejected', () => {
+  expect(reviewResponse.ok).toBe(false);
+});
+
+When('two admins approve the request at the same time', async ({ adminToken }) => {
+  concurrentResponses = await Promise.all([
+    approveRescheduleRequestRaw(adminToken, requestId),
+    approveRescheduleRequestRaw(adminToken, requestId),
+  ]);
+});
+
+Then('exactly one review succeeds', () => {
+  expect(concurrentResponses.filter((res) => res.ok)).toHaveLength(1);
+});
+
+Then('the other pending request is rejected', async () => {
+  await expect
+    .poll(
+      async () =>
+        (await getRescheduleRequestsByBookingId(bookingId)).find((r) => r.id === secondRequestId)?.status,
+      { timeout: 10_000 },
+    )
+    .toBe('rejected');
 });
