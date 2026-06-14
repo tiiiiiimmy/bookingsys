@@ -13,12 +13,12 @@
 
 | 模块 | 场景 | 关键断言 |
 |---|---|---|
-| 预约 Booking | 下单 + 支付成功 / 支付失败 / 非法签名 webhook 被拒 | 确认页徽章 + `bookings.status` + `payments.status` |
-| 改期 Reschedule | 客户申请改期 + 管理员审批通过 | `booking_reschedule_requests.status=approved` |
-| 产品下单 Order | 下单 + 支付成功 | 确认页徽章 + `product_orders.status=paid` |
-| 管理员登录 Admin | 正确凭据成功 / 错误密码失败 | 跳转 dashboard / 显示错误提示 |
+| 预约 Booking | 下单支付成功/失败、非法签名、多时段、确认页轮询、时段冲突、并发与 hold 过期、表单校验、可用性边界 | 确认页徽章 + `bookings.status` + `payments.status` |
+| 改期 Reschedule | manage 页状态、二次/冲突申请、管理员 UI 批准/拒绝、复核边界（已复核/并发/多 pending） | `booking_reschedule_requests.status` + `bookings` 起止时间 |
+| 产品下单 Order | 逐商品支付成功、未知商品、支付失败/未发 webhook 保持 pending、表单校验 | 确认页徽章 + `product_orders.status` |
+| 管理员 Admin | 登录成功/失败、会话（路由守卫/刷新/失效/双标签登出）、后台管理（筛选/详情/手动改期/可用性管理与负例） | 跳转/重定向 + 列表/详情字段 + 营业时间/封锁 → 公开可用性 |
 
-当前已自动化 7 个场景（最新运行 Run #003 全绿）。完整用例清单与待实现 backlog 见
+当前已自动化 **54 个场景**（最新运行 Run #005：53 通过 + 1 个 xfail）。完整用例清单、实现状态与已知缺口见
 [`doc/test-cases.md`](doc/test-cases.md)，测试设计见 [`doc/test-design.md`](doc/test-design.md)。
 
 ---
@@ -162,19 +162,24 @@ test/
 ├── tsconfig.json             TS（ESM, moduleResolution: Bundler）
 ├── .env.test(.example)       环境变量（真实值不入库，见 .gitignore）
 ├── features/                 Gherkin 场景（.feature）
-│   ├── booking/  booking.feature, reschedule.feature
+│   ├── booking/  booking.feature, concurrency.feature, reschedule.feature
 │   ├── order/    product-order.feature
-│   └── admin/    login.feature
-├── steps/                    步骤定义（*.steps.ts）
+│   └── admin/    login.feature, session.feature, management.feature
+├── steps/                    步骤定义（*.steps.ts，含 admin-management.steps.ts）
 ├── pages/                    页面对象（Page Object）
+│   ├── BasePage.ts           公共基元（goto / fill / expectVisible / expectAbsent / expectAttr）
+│   └── *.ts                  Booking / Manage / AdminLogin / AdminBookings / AdminAvailability / …（均继承 BasePage）
 ├── support/                  基础设施
 │   ├── env.ts                环境配置 + 测试库安全护栏 + backendProcessEnv()
 │   ├── global-setup.ts       套件级 migrate + seed
 │   ├── backend.ts            一次性 dotnet 命令 / URL 轮询
-│   ├── db.ts                 mysql2 连接池 + 查询/清理助手
+│   ├── db.ts                 mysql2 连接池 + 查询/清理/播种助手
 │   ├── stripe-mock.ts        伪造并签名 Stripe webhook
-│   ├── api.ts                后端 API 助手（管理员登录 / 审批改期）
-│   └── fixtures.ts           Playwright/BDD fixtures（页面对象、唯一邮箱、拦截 stripe.com）
+│   ├── api.ts                后端 API 助手（apiFetch/apiJson 基元 + 登录/改期审批/可用性）
+│   ├── constants.ts          共享常量（可预约服务 id、超时）
+│   ├── dates.ts              下周日期/取档助手
+│   ├── seed.ts               下周空档预约播种助手
+│   └── fixtures.ts           Playwright/BDD fixtures（页面对象、唯一邮箱、免登录 adminPage、拦截 stripe.com）
 └── doc/                      所有测试文档
     ├── test-design.md            测试设计
     ├── test-cases.md             人类可读用例清单 + 待实现 backlog
@@ -189,5 +194,6 @@ test/
 ## 8. 运行报告 (Reports)
 
 每次运行产出一份带**运行编号 + 时间**的报告，存于 `doc/reports/`，并登记在索引
-[`doc/test-report.md`](doc/test-report.md)。最新 **Run #003**：7 passed / 0 failed / 0 flaky，
-覆盖预约、改期、产品下单、管理员登录，全程 mock Stripe、不调外部服务。
+[`doc/test-report.md`](doc/test-report.md)。最新 **Run #005**：54 passed / 0 failed / 0 flaky（含 1 个 xfail），
+覆盖预约（含并发与 hold 过期）、改期、产品下单、管理员登录/会话/后台管理，全程 mock Stripe、不调外部服务。
+已知缺口：TC-RS-10（后端并发，xfail）、TC-AD-11 营业时间 start>end 子例（后端未校验，暂不自动化）。

@@ -225,10 +225,35 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 
 ## 测试
 
-访问应用:
+### 手动访问应用
 - **客户页面**: http://localhost:3000
 - **管理员登录**: http://localhost:3000/admin/login
 - **管理员仪表板**: http://localhost:3000/admin/dashboard
+
+### 端到端自动化测试 (E2E)
+
+`test/` 目录是一套基于 **Playwright + playwright-bdd** 的前端端到端测试：真实浏览器驱动前端、
+打通到真实运行的 .NET 后端、并直连 MySQL 测试库做数据断言；Stripe 全程 mock（后端
+`STRIPE_FAKE_PAYMENTS` + 伪造签名 webhook，测试浏览器拦截 `stripe.com`），不调用任何外部服务。
+
+- **覆盖**：当前 **54 个场景**，断言贯穿 UI → API → DB 三层，涵盖
+  - 预约（支付成功/失败、非法签名、多时段、确认页轮询、时段冲突、并发与 hold 过期、表单校验、可用性边界）
+  - 改期（manage 页状态、冲突申请、管理员 UI 批准/拒绝、复核边界）
+  - 产品下单（逐商品成功、未知商品、未支付保持 pending、表单校验）
+  - 管理员（登录、会话守卫/刷新/双标签登出、后台筛选/详情/手动改期/可用性管理）
+- **运行**：
+  ```bash
+  cd test
+  npm install && npx playwright install chromium
+  cp .env.test.example .env.test   # 按本机填写，注意 API_URL 端口为 5001
+  npm run test:e2e                 # 全量回归（bddgen → playwright test）
+  npm run test:smoke               # 仅核心 @smoke 场景
+  ```
+  > 运行前需停止占用后端端口的开发后端（测试以测试库 `bookingsys_test` 启动自有后端）。
+- **文档**：套件说明见 [`test/README.md`](test/README.md)，用例清单与实现状态见
+  [`test/doc/test-cases.md`](test/doc/test-cases.md)，每次运行报告见 [`test/doc/reports/`](test/doc/reports/)。
+- **已知缺口**：TC-RS-10（后端改期审批并发未加锁读，记为 xfail）、TC-AD-11 营业时间 `start>end`
+  子例（后端未校验，暂不自动化）。
 
 ## 安全注意事项
 
