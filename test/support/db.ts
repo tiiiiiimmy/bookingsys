@@ -29,6 +29,19 @@ export async function queryOne<T = any>(sql: string, params: any[] = []): Promis
   return (rows as T[])[0];
 }
 
+/**
+ * Format a Date as a naive 'YYYY-MM-DD HH:mm:ss' string in the process's LOCAL time.
+ * The backend stores/compares `expires_at` via C# `DateTime.Now` (local wall clock), so seeded
+ * holds must use local time too — MySQL `NOW()` here runs in UTC and would read as already expired.
+ */
+function formatLocalDateTime(date: Date): string {
+  const pad = (value: number) => `${value}`.padStart(2, '0');
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+    `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  );
+}
+
 /** Latest booking for a customer email, joined with its payment status. */
 export async function getBookingByEmail(email: string) {
   return queryOne<{ id: number; status: string; payment_status: string | null }>(
@@ -82,21 +95,28 @@ export async function getBookingStatusReason(bookingId: number) {
 
 /** Force a pending booking's hold to be expired (so a later succeeded webhook cancels it). */
 export async function expireBookingHold(bookingId: number): Promise<void> {
-  await db().query('UPDATE bookings SET expires_at = NOW() - INTERVAL 1 HOUR WHERE id = ?', [bookingId]);
+  // Local wall-clock past time, matching the backend's DateTime.Now-based IsExpired check.
+  const expiredAt = formatLocalDateTime(new Date(Date.now() - 60 * 60_000));
+  await db().query('UPDATE bookings SET expires_at = ? WHERE id = ?', [expiredAt, bookingId]);
 }
 
 /**
- * Directly seed a confirmed booking (+ succeeded payment) for a customer email, to create a
- * pre-existing conflict at a slot. Uses the same email convention so `cleanupCustomer` removes it.
+ * Directly seed a booking (+ payment) for a customer email, to create a pre-existing
+ * conflict/hold at a slot. Uses the same email convention so `cleanupCustomer` removes it.
  * `startTime`/`endTime` are MySQL DATETIME strings ('YYYY-MM-DD HH:mm:ss'); price/duration are
- * derived from the service type and the time range.
+ * derived from the service type and the time range. `holdMinutes` sets `expires_at`
+ * (null => NULL, i.e. no hold window — used for confirmed seeds).
  */
-export async function insertConfirmedBooking(input: {
+async function seedBooking(input: {
   email: string;
   startTime: string;
   endTime: string;
   serviceTypeId: number;
   technicianId?: number | null;
+  status: 'confirmed' | 'pending';
+  paymentStatus: 'succeeded' | 'pending';
+  paymentIntentId: string;
+  holdMinutes: number | null;
 }): Promise<{ bookingId: number; customerId: number }> {
   const conn = await db().getConnection();
   try {
@@ -121,19 +141,22 @@ export async function insertConfirmedBooking(input: {
     );
     const priceCents = svc?.price_cents ?? 0;
     const manageToken = `seed-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    // Use a LOCAL wall-clock expiry so it matches the backend's DateTime.Now-based IsExpired check.
+    const expiresAt =
+      input.holdMinutes === null ? null : formatLocalDateTime(new Date(Date.now() + input.holdMinutes * 60_000));
 
     const [bk] = await conn.query(
       `INSERT INTO bookings
          (customer_id, service_type_id, technician_id, start_time, end_time, duration_minutes, status, price_cents, manage_token, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, NULL)`,
-      [customerId, input.serviceTypeId, input.technicianId ?? null, input.startTime, input.endTime, durationMinutes, priceCents, manageToken],
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [customerId, input.serviceTypeId, input.technicianId ?? null, input.startTime, input.endTime, durationMinutes, input.status, priceCents, manageToken, expiresAt],
     );
     const bookingId = (bk as { insertId: number }).insertId;
 
     await conn.query(
       `INSERT INTO payments (booking_id, stripe_payment_intent_id, amount_cents, currency, status)
-       VALUES (?, ?, ?, 'usd', 'succeeded')`,
-      [bookingId, `pi_seed_${bookingId}_${Date.now()}`, priceCents],
+       VALUES (?, ?, ?, 'usd', ?)`,
+      [bookingId, input.paymentIntentId, priceCents, input.paymentStatus],
     );
 
     await conn.commit();
@@ -144,6 +167,43 @@ export async function insertConfirmedBooking(input: {
   } finally {
     conn.release();
   }
+}
+
+/** Seed a confirmed booking with a succeeded payment (pre-existing conflict at a slot). */
+export async function insertConfirmedBooking(input: {
+  email: string;
+  startTime: string;
+  endTime: string;
+  serviceTypeId: number;
+  technicianId?: number | null;
+}): Promise<{ bookingId: number; customerId: number }> {
+  return seedBooking({
+    ...input,
+    status: 'confirmed',
+    paymentStatus: 'succeeded',
+    paymentIntentId: `pi_seed_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    holdMinutes: null,
+  });
+}
+
+/**
+ * Seed a pending booking with a live 30-minute hold and a pending payment whose intent id is
+ * `paymentIntentId`, so a forged succeeded/failed webhook can drive it (concurrency/expiry tests).
+ */
+export async function insertPendingBooking(input: {
+  email: string;
+  startTime: string;
+  endTime: string;
+  serviceTypeId: number;
+  paymentIntentId: string;
+  technicianId?: number | null;
+}): Promise<{ bookingId: number; customerId: number }> {
+  return seedBooking({
+    ...input,
+    status: 'pending',
+    paymentStatus: 'pending',
+    holdMinutes: 30,
+  });
 }
 
 /** Manage token for the latest booking of a customer email. */
