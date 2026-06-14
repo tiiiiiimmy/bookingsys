@@ -83,3 +83,17 @@ Feature: Booking
   Scenario: The availability API rejects a non-30-minute duration
     When I request availability with a 45-minute duration
     Then the availability request is rejected because the duration is invalid
+
+  Scenario: A closed day offers no booking slots
+    Given I am on the booking page
+    When I view next week for the bookable service
+    Then the closed day next week offers no slots
+
+  Scenario: Slots are offered at the opening and closing boundaries
+    When I request availability for an open day next week
+    Then a slot starts at the opening time
+    And a slot ends at the closing time
+
+  Scenario: A blocked period removes its overlapping slot
+    Given an admin blocks the first open slot next week
+    Then the blocked slot is no longer available
