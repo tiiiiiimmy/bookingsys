@@ -195,16 +195,16 @@ const ProductOrderPage = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <label className="block">
                     <span className="mb-2 block text-sm font-semibold text-on-surface">First name</span>
-                    <input name="firstName" required value={form.firstName} onChange={handleChange} className={adminInputClass} />
+                    <input name="firstName" data-testid="order-first-name" required value={form.firstName} onChange={handleChange} className={adminInputClass} />
                   </label>
                   <label className="block">
                     <span className="mb-2 block text-sm font-semibold text-on-surface">Last name</span>
-                    <input name="lastName" required value={form.lastName} onChange={handleChange} className={adminInputClass} />
+                    <input name="lastName" data-testid="order-last-name" required value={form.lastName} onChange={handleChange} className={adminInputClass} />
                   </label>
                 </div>
                 <label className="block">
                   <span className="mb-2 block text-sm font-semibold text-on-surface">Email</span>
-                  <input name="email" type="email" required value={form.email} onChange={handleChange} className={adminInputClass} />
+                  <input name="email" type="email" data-testid="order-email" required value={form.email} onChange={handleChange} className={adminInputClass} />
                 </label>
                 <label className="block">
                   <span className="mb-2 block text-sm font-semibold text-on-surface">Phone</span>
@@ -217,6 +217,7 @@ const ProductOrderPage = () => {
 
                 <button
                   type="submit"
+                  data-testid="order-submit"
                   disabled={submitting}
                   className="rounded-full bg-primary px-7 py-3 text-sm font-semibold text-on-primary transition-all hover:-translate-y-0.5 hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-60"
                 >

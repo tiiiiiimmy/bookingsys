@@ -99,6 +99,7 @@ const ProductOrderConfirmationPage = () => {
               {order.customerPhone ? <SummaryRow label="Phone" value={order.customerPhone} /> : null}
               {order.intention ? <SummaryRow label="Intention" value={order.intention} /> : null}
               <SummaryRow label="Total" value={formatMoney(order.priceCents / 100)} />
+              <span data-testid="order-status-badge" data-status={order.status} hidden />
               <SummaryRow label="Status" value={order.status.charAt(0).toUpperCase() + order.status.slice(1)} />
             </PublicCard>
 

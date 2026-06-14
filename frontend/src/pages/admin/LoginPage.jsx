@@ -46,13 +46,14 @@ const LoginPage = () => {
             <h2 className="mt-3 font-headline text-3xl text-on-surface">{t.login.title}</h2>
           </div>
 
-          {error ? <div className={`${getAdminAlertClass('error')} mb-6`}>{error}</div> : null}
+          {error ? <div data-testid="admin-login-error" className={`${getAdminAlertClass('error')} mb-6`}>{error}</div> : null}
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             <label className="block text-sm text-on-surface-variant">
               <span className="mb-2 block font-semibold text-on-surface">{t.login.email}</span>
               <input
                 className={adminInputClass}
+                data-testid="admin-login-email"
                 disabled={loading}
                 required
                 type="email"
@@ -65,6 +66,7 @@ const LoginPage = () => {
               <span className="mb-2 block font-semibold text-on-surface">{t.login.password}</span>
               <input
                 className={adminInputClass}
+                data-testid="admin-login-password"
                 disabled={loading}
                 required
                 type="password"
@@ -73,7 +75,7 @@ const LoginPage = () => {
               />
             </label>
 
-            <button className={`${adminButtonPrimaryClass} w-full`} disabled={loading} type="submit">
+            <button className={`${adminButtonPrimaryClass} w-full`} data-testid="admin-login-submit" disabled={loading} type="submit">
               {loading ? t.login.submitting : t.login.submit}
             </button>
           </form>

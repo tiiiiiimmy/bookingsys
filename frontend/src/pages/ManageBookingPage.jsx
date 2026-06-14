@@ -161,7 +161,7 @@ const ManageBookingPage = () => {
               <div className="rounded-[1.5rem] bg-error-container px-5 py-4 text-sm text-on-error-container">{error}</div>
             ) : null}
             {message ? (
-              <div className="rounded-[1.5rem] bg-emerald-100 px-5 py-4 text-sm text-emerald-800">{message}</div>
+              <div data-testid="manage-reschedule-result" className="rounded-[1.5rem] bg-emerald-100 px-5 py-4 text-sm text-emerald-800">{message}</div>
             ) : null}
 
             <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -219,6 +219,7 @@ const ManageBookingPage = () => {
                     <input
                       className="w-full rounded-2xl border border-outline-variant bg-white px-4 py-3 text-on-surface outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:bg-surface-container"
                       disabled={!booking.canRequestReschedule}
+                      data-testid="manage-reschedule-date"
                       id="reschedule-date"
                       type="date"
                       value={selectedDate}
@@ -240,6 +241,7 @@ const ManageBookingPage = () => {
                             <button
                               key={`${slot.startTime}-${index}`}
                               type="button"
+                              data-testid="manage-reschedule-slot"
                               className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors ${
                                 selectedSlot?.startTime === slot.startTime
                                   ? 'border-primary bg-primary text-on-primary'
@@ -272,6 +274,7 @@ const ManageBookingPage = () => {
                   <div className="flex flex-wrap gap-3">
                     <button
                       type="submit"
+                      data-testid="manage-reschedule-submit"
                       className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-on-primary transition-all hover:-translate-y-0.5 hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-60"
                       disabled={!booking.canRequestReschedule}
                     >
