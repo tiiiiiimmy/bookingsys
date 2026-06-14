@@ -27,3 +27,11 @@ Feature: Booking
     And I submit the booking
     And a webhook with an invalid signature arrives
     Then the booking is not confirmed in the database
+
+  Scenario: Customer books multiple slots and all are confirmed
+    Given I am on the booking page
+    When I select a bookable service and 2 slots
+    And I enter my customer details
+    And I submit the booking
+    And the payment succeeds
+    Then all bookings for the customer are confirmed
