@@ -1,80 +1,80 @@
-# 按摩预约系统 - 后端 API
+# Psychic Magic — Backend API
 
-基于 .NET 10 + ASP.NET Core 的后端服务器，使用 MySQL 数据库和 Stripe 支付集成。
+ASP.NET Core backend on .NET 10 with MySQL and Stripe integration for Psychic Reading appointments and spell product orders.
 
-## 前置要求
+## Prerequisites
 
 - .NET SDK 10.0
-- **MySQL 8.0+** (或 MariaDB 10.5+)
-- Stripe 账户（用于支付）
+- **MySQL 8.0+** (or MariaDB 10.5+)
+- Stripe account (payments)
 
-## 安装
+## Installation
 
-1. 恢复 .NET 依赖:
+1. Restore .NET dependencies:
 ```bash
 dotnet restore BookingSystem.Api.csproj
 ```
 
-2. 配置环境变量:
+2. Configure environment:
 ```bash
 cp .env.example .env
-# 编辑 .env 填写配置
+# Edit .env with your settings
 ```
 
-3. 创建 MySQL 数据库:
+3. Create MySQL database:
 ```bash
-# 登录 MySQL
+# Log in to MySQL
 mysql -u root -p
 
-# 创建数据库
+# Create database
 CREATE DATABASE bookingsys CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-# 退出
+# Exit
 EXIT;
 ```
 
-4. 运行数据库迁移:
+4. Run migrations:
 ```bash
 dotnet run --project BookingSystem.Api.csproj -- --migrate
 ```
 
-5. 种子数据:
+5. Seed data:
 ```bash
 dotnet run --project BookingSystem.Api.csproj -- --seed
 ```
 
-这将创建:
-- 服务类型（深层组织按摩、瑞典香氛疗愈、热石能量引导、头肩颈释压）
-- 营业时间（周四和周日，9 AM - 5 PM）
-- 初始管理员用户
+This creates:
+- Service types (Psychic Reading 15 / 30 / 60 min)
+- Business hours (configurable weekly schedule; seed sets Mon–Thu 9:00–17:00 open)
+- Initial admin user
 
-## 运行服务器
+## Running the Server
 
-开发模式（自动重载）:
+Development (hot reload):
 ```bash
 dotnet watch run --project BookingSystem.Api.csproj
 ```
 
-生产模式:
+Production:
 ```bash
 dotnet run --no-launch-profile --project BookingSystem.Api.csproj
 ```
 
-服务器默认运行在 `http://localhost:5000`
+Server defaults to `http://localhost:5000`
 
-## 环境变量
+## Environment Variables
 
-关键环境变量（查看 `.env.example` 获取完整列表）:
+Key variables (see `.env.example` for the full list):
 
 ```env
-# MySQL 数据库
+# MySQL
 DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=bookingsys
 DB_USER=root
 DB_PASSWORD=your_password
 
-# JWT 密钥（生产环境必须更改！）
+# JWT secrets (must change in production!)
 JWT_SECRET=your-secret-key
 JWT_REFRESH_SECRET=your-refresh-secret
 
@@ -83,37 +83,39 @@ STRIPE_SECRET_KEY=sk_test_your_key
 STRIPE_PUBLISHABLE_KEY=pk_test_your_key
 STRIPE_WEBHOOK_SECRET=whsec_your_key
 
-# 邮件（可选，用于开发）
+# Email (optional, development)
 SMTP_HOST=smtp.gmail.com
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
 
-# App / 前端
+# App / frontend
 APP_BASE_URL=http://localhost:3000
 SUPPORT_EMAIL=support@example.com
 FRONTEND_URLS=http://localhost:3000,http://localhost:3001
 
-# 管理员用户（用于初始种子）
+# Admin user (initial seed)
 ADMIN_EMAIL=admin@massage.com
 ADMIN_PASSWORD=admin123
 ```
 
-## API 端点
+## API Endpoints
 
-### 公共端点
-- `GET /health` - 健康检查
+### Public
+- `GET /health` — Health check
 - `GET /api/bookings/service-types`
 - `POST /api/bookings`
 - `GET /api/bookings/:id`
 - `GET /api/bookings/manage/:token`
 - `POST /api/bookings/manage/:token/reschedule-request`
 - `GET /api/availability/slots`
+- `POST /api/product-orders`
+- `GET /api/product-orders/:id`
 - `POST /api/webhooks/stripe`
 
-### 管理员端点
-- `POST /api/admin/auth/login` - 管理员登录
-- `POST /api/admin/auth/refresh` - 刷新令牌
-- `GET /api/admin/auth/me` - 获取当前管理员
+### Admin
+- `POST /api/admin/auth/login` — Admin login
+- `POST /api/admin/auth/refresh` — Refresh token
+- `GET /api/admin/auth/me` — Current admin
 - `GET /api/admin/dashboard/stats`
 - `GET /api/admin/bookings`
 - `GET /api/admin/bookings/:id`
@@ -123,68 +125,72 @@ ADMIN_PASSWORD=admin123
 - `GET /api/admin/customers/:id`
 - `POST /api/admin/reschedule-requests/:id/approve`
 - `POST /api/admin/reschedule-requests/:id/reject`
+- `GET /api/admin/product-orders`
+- `PATCH /api/admin/product-orders/:id/fulfill`
 
-## 数据库架构
+## Database Schema
 
-### 表结构
-- `customers` - 客户信息
-- `bookings` - 预约记录
-- `payments` - Stripe 支付记录
-- `availability_blocks` - 屏蔽时间段
-- `business_hours` - 每周营业时间
-- `admins` - 管理员用户
-- `service_types` - 服务类型和价格
+### Tables
+- `customers` — Customer records
+- `bookings` — Appointment records
+- `payments` — Stripe payment records (bookings)
+- `product_orders` — Spell product orders
+- `availability_blocks` — Blocked periods
+- `business_hours` — Weekly business hours
+- `admins` — Admin users
+- `service_types` — Services and pricing
 
-### 主要特性
-- 外键约束防止数据不一致
-- CHECK 约束验证数据
-- 自动更新 updated_at 时间戳
-- 索引提升查询性能
+### Features
+- Foreign keys for consistency
+- CHECK constraints for validation
+- Automatic `updated_at` timestamps
+- Indexes for query performance
 
-## 项目结构
+## Project Structure
 
 ```
 backend/
-├── Controllers/          # API 控制器
-├── Services/             # 业务逻辑
-├── Models/               # 请求和响应模型
-├── Middleware/           # 错误处理等中间件
-├── Database/             # MySQL 连接、迁移、种子
-├── Configuration/        # .env 和配置读取
-├── src/database/         # SQL 迁移和种子文件
-├── .env                  # 环境变量
-├── .env.example          # 环境变量模板
+├── Controllers/          # API controllers
+├── Services/             # Business logic
+├── Models/               # Request/response models
+├── Middleware/           # Error handling, etc.
+├── Database/             # MySQL connection, migrations, seeding
+├── Configuration/        # .env and config loading
+├── src/database/         # SQL migrations and seeds
+├── .env                  # Environment variables
+├── .env.example          # Environment template
 ├── BookingSystem.Api.csproj
-└── Program.cs            # ASP.NET Core 应用入口
+└── Program.cs            # ASP.NET Core entry
 ```
 
-## 开发进度
+## Development Progress
 
-✅ **Phase 1-6 准上线版（已完成）**
-- 后端结构
-- MySQL 数据库和迁移
-- 管理员认证
-- 客户预约与支付初始化
-- Stripe Webhook 回写
-- 管理员预约管理
-- 客户改期申请
-- 基础邮件通知
+✅ **Phases 1–6 pre-launch (done)**
+- Backend structure
+- MySQL database and migrations
+- Admin authentication
+- Customer booking and payment initialization
+- Stripe webhook updates
+- Admin booking management
+- Customer reschedule requests
+- Spell product orders
+- Basic email notifications
 
-## 测试
+## Testing
 
 ```bash
 dotnet build BookingSystem.Api.csproj
 ```
 
-（当前以 `dotnet build` 验证为主）
+(Currently verified mainly via `dotnet build`. Full E2E suite lives on branch `test/e2e-bdd-playwright`; see root README.)
 
-## 安全注意事项
+## Security
 
-- 永远不要提交 `.env` 到版本控制
-- 首次登录后立即更改默认管理员密码
-- 生产环境使用强 JWT 密钥
-- 生产环境启用 HTTPS（Stripe 要求）
+- Never commit `.env` to version control
+- Change the default admin password after first login
+- Use strong JWT secrets in production
+- Enable HTTPS in production (Stripe requirement)
 
-## 许可证
+## License
 
 ISC

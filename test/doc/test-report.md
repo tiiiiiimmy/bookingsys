@@ -1,23 +1,27 @@
-# E2E 测试报告索引 (Test Report Index)
+# E2E Test Report Index
 
-每次运行生成一份带**运行编号 + 时间**的报告，存放于 `test/doc/reports/`。最新在最上方。
+Each run produces a report with **run number + timestamp** under `test/doc/reports/`. Newest first.
 
-| 运行 | 时间 | 结果 | 报告 |
+| Run | Time | Result | Report |
 |---|---|---|---|
-| #005 | 2026-06-15 | ✅ 54 通过 / 0 失败 / 0 flaky（含 1 xfail，Phase 5 落地） | [run-005-2026-06-15.md](reports/run-005-2026-06-15.md) |
-| #004 | 2026-06-15 | ✅ 45 通过 / 0 失败 / 0 flaky（含 1 xfail） | [run-004-2026-06-15.md](reports/run-004-2026-06-15.md) |
-| #003 | 2026-06-14 ~15:31 | ✅ 7 通过 / 0 失败 / 0 flaky | [run-003-2026-06-14.md](reports/run-003-2026-06-14.md) |
-| #002 | 2026-06-14 14:03–14:04 | ✅ 7 通过 / 0 失败 | [run-002-2026-06-14.md](reports/run-002-2026-06-14.md) |
-| #001 | 2026-06-14（修复前基线） | 3 通过 / 4 失败 | [run-001-2026-06-14.md](reports/run-001-2026-06-14.md) |
+| #005 | 2026-06-15 | ✅ 54 passed / 0 failed / 0 flaky (1 xfail, Phase 5 landed) | [run-005-2026-06-15.md](reports/run-005-2026-06-15.md) |
+| #004 | 2026-06-15 | ✅ 45 passed / 0 failed / 0 flaky (1 xfail) | [run-004-2026-06-15.md](reports/run-004-2026-06-15.md) |
+| #003 | 2026-06-14 ~15:31 | ✅ 7 passed / 0 failed / 0 flaky | [run-003-2026-06-14.md](reports/run-003-2026-06-14.md) |
+| #002 | 2026-06-14 14:03–14:04 | ✅ 7 passed / 0 failed | [run-002-2026-06-14.md](reports/run-002-2026-06-14.md) |
+| #001 | 2026-06-14 (pre-fix baseline) | 3 passed / 4 failed | [run-001-2026-06-14.md](reports/run-001-2026-06-14.md) |
 
-## 当前状态
+## Current Status
 
-最新运行 (#005)：**54 个场景全绿，0 重试**（其中 1 个为预期失败 xfail，记录 TC-RS-10 的后端并发缺陷）。覆盖预约（含并发与 hold 过期）、改期（TC-RS-01..11）、产品下单（TC-OD-01..06）、管理员登录/会话/后台管理（TC-AD-01..11），断言贯穿 UI + API + DB；Stripe 全程 mock（后端 `STRIPE_FAKE_PAYMENTS` + 伪造签名 webhook），测试浏览器拦截 `stripe.com`，不调用真实外部服务。已知缺口：TC-RS-10（后端并发，xfail）、TC-AD-11 的营业时间 start>end 子例（后端未校验，暂不自动化）。
+Latest run (#005): **all 54 scenarios green, 0 retries** (1 expected xfail for TC-RS-10 backend concurrency defect).
+Covers booking (including concurrency & hold expiry), reschedule (TC-RS-01..11), product orders (TC-OD-01..06),
+admin login/session/management (TC-AD-01..11) with UI + API + DB assertions. Stripe fully mocked
+(`STRIPE_FAKE_PAYMENTS` + forged webhooks; browser blocks `stripe.com`). Known gaps: TC-RS-10 (xfail);
+TC-AD-11 business-hours `start>end` sub-case (backend not validated; not automated).
 
-## 运行方式
+## How to Run
 
 ```bash
-cd test && npm run test:e2e
+cd test && npm run test:regression
 ```
 
-> 运行前需停止占用 `:5001` 的开发后端（测试会用测试库 `bookingsys_test` 启动自己的后端），前端开发服务器 `:3000` 可复用。
+> Stop any dev backend on `:5001` before running (tests start their own backend on `bookingsys_test`). Frontend dev server on `:3000` may be reused.

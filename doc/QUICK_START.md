@@ -1,152 +1,155 @@
-# 快速启动指南
+# Quick Start Guide
 
-## 当前版本
+## Current Version
 
-当前仓库已完成：
-- .NET 10 + MySQL 8 后端
-- React/Vite 前端
-- Stripe 先支付后确认链路
-- 管理员预约/客户管理
-- 客户改期申请
+This repository includes:
+- .NET 10 + MySQL 8 backend
+- React/Vite frontend
+- Stripe pay-before-confirm flow
+- Admin booking and customer management
+- Customer reschedule requests
+- Spell product checkout (White Magic / Love Spell / Money Spell)
 
-## 启动步骤
+## Startup Steps
 
-### 1. 设置 MySQL 数据库
+### 1. Set Up MySQL
 
 ```bash
-# 登录 MySQL
+# Log in to MySQL
 mysql -u root -p
 
-# 创建数据库
+# Create database
 CREATE DATABASE bookingsys CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-# 验证
+# Verify
 SHOW DATABASES;
 
-# 退出
+# Exit
 EXIT;
 ```
 
-### 2. 启动后端
+### 2. Start the Backend
 
 ```bash
-# 进入后端目录
+# Enter backend directory
 cd /var/www/bookingsys/backend
 
-# 复制环境变量模板
+# Copy environment template
 cp .env.example .env
-# 至少配置 DB_*、JWT_*、FRONTEND_URLS
-# 如需完整支付演示，还要配置 Stripe 和 SMTP
+# At minimum configure DB_*, JWT_*, FRONTEND_URLS
+# For full payment demo, also configure Stripe and SMTP
 
-# 运行数据库迁移
+# Run migrations
 dotnet run --project BookingSystem.Api.csproj -- --migrate
 
-# 创建初始数据（管理员、服务类型、营业时间）
+# Seed initial data (admin, service types, business hours)
 dotnet run --project BookingSystem.Api.csproj -- --seed
 
-# 启动开发服务器
+# Start dev server
 dotnet watch run --project BookingSystem.Api.csproj
 ```
 
-后端默认运行在 `http://localhost:5000`
+Backend defaults to `http://localhost:5000`
 
-### 3. 启动前端
+### 3. Start the Frontend
 
-**打开新终端窗口:**
+**Open a new terminal:**
 
 ```bash
-# 进入前端目录
+# Enter frontend directory
 cd /var/www/bookingsys/frontend
 
-# 启动开发服务器
+# Start dev server
 npm run dev
 ```
 
-**预期输出:**
+**Expected output:**
 ```
 VITE v7.x.x ready in XXX ms
 
 ➜  Local:   http://localhost:3000/
 ```
 
-### 4. 访问应用
+### 4. Access the App
 
-- **客户主页**: http://localhost:3000/
-- **管理员登录**: http://localhost:3000/admin/login
-- **客户预约确认页**: http://localhost:3000/booking/confirmation/:bookingId
-- **客户预约管理页**: 通过邮件里的 `/booking/manage/:token` 链接访问
+- **Customer home**: http://localhost:3000/
+- **Book Psychic Reading**: http://localhost:3000/booking
+- **Spell product checkout**: http://localhost:3000/order?product=White%20Magic
+- **Admin login**: http://localhost:3000/admin/login
+- **Booking confirmation**: http://localhost:3000/booking/confirmation/:bookingId
+- **Manage booking**: via email link `/booking/manage/:token`
 
-### 5. 管理员登录凭据
+### 5. Admin Credentials
 
 ```
-邮箱: admin@massage.com
-密码: admin123
+Email: admin@massage.com
+Password: admin123
 ```
 
-⚠️ **首次登录后请更改密码！**
+⚠️ **Change the password after first login!**
 
-## 验证数据库
+## Verify the Database
 
 ```bash
-# 查看所有表
+# List tables
 mysql -u root -p bookingsys -e "SHOW TABLES;"
 
-# 查看管理员
+# View admins
 mysql -u root -p bookingsys -e "SELECT id, email, first_name FROM admins;"
 
-# 查看服务类型
+# View service types
 mysql -u root -p bookingsys -e "SELECT * FROM service_types;"
 
-# 查看营业时间
+# View business hours
 mysql -u root -p bookingsys -e "SELECT * FROM business_hours;"
 ```
 
-## 常见问题
+## Common Issues
 
-### 前端 React 错误
+### Frontend React Errors
 
-如果看到 "React is not defined" 错误：
+If you see "React is not defined":
 
 ```bash
 cd frontend
 npm install
-# 然后重启: npm run dev
+# Then restart: npm run dev
 ```
 
-### MySQL 连接失败
+### MySQL Connection Failed
 
-检查:
-1. MySQL 正在运行: `sudo service mysql status`
-2. 数据库已创建: 见步骤 1
-3. `.env` 文件中的凭据正确
+Check:
+1. MySQL is running: `sudo service mysql status`
+2. Database was created (step 1)
+3. Credentials in `.env` are correct
 
-### 端口已被占用
+### Port Already in Use
 
-如果端口 5000 或 3000 被占用：
+If ports 5000 or 3000 are taken:
 
-**后端 (.env):**
+**Backend (.env):**
 ```
 PORT=5001
 ```
 
-**前端 (vite.config.js):**
+**Frontend (vite.config.js):**
 ```javascript
 server: { port: 3001 }
 ```
 
-## 技术栈
+## Tech Stack
 
 - ✅ .NET 10 + ASP.NET Core
-- ✅ **MySQL 8.0+** (已从 PostgreSQL 迁移)
+- ✅ **MySQL 8.0+** (migrated from PostgreSQL)
 - ✅ React 19
 - ✅ React Router v7
 - ✅ Axios
-- ✅ Stripe (待配置)
-- ✅ JWT 认证
+- ✅ Stripe (configure as needed)
+- ✅ JWT authentication
 
-## 建议验证顺序
+## Suggested Verification Order
 
-1. 管理员登录后台，确认仪表板、预约管理、客户管理可以打开
-2. 创建一条预约，确认能拿到 Stripe 支付页
-3. 通过 Stripe 测试卡完成支付，检查预约是否变为 `confirmed`
-4. 打开客户管理链接，提交一条改期申请，再到后台审核
+1. Log in to admin, open dashboard, bookings, and customers
+2. Create a booking and reach the Stripe payment step
+3. Pay with a Stripe test card; confirm booking becomes `confirmed`
+4. Open the manage link, submit a reschedule request, approve it in admin

@@ -1,187 +1,187 @@
-# 测试用例清单 (Test Cases)
+# Test Cases
 
-Date: 2026-06-15 · 模块: 前端 E2E (Playwright + BDD)
+Date: 2026-06-15 · Module: Frontend E2E (Playwright + BDD)
 
-> 可执行用例为 `test/features/**/*.feature` 中的 Gherkin 场景，本文档是其人类可读版本。
-> 状态来源: 最新运行 Run #005（54 场景全绿，含 1 个 xfail，见 `test/doc/reports/`）。
-> 状态图例：✅ 已自动化且通过 ｜ ⚠️ 已自动化但记录为预期失败（xfail，后端缺陷）｜ ⬜ 未自动化（后端缺口）。
-> 通用前置条件: 后端运行于 `:5001`（`STRIPE_FAKE_PAYMENTS=true`），前端运行于 `:3000`，
-> 测试库 `bookingsys_test` 已 migrate + seed（管理员、3 个服务项目、营业时间 周一–周四 09:00–17:00）。
-> 每个用例使用唯一化客户邮箱，结束后自动清理。
-
----
-
-## 模块 A：在线预约 (Booking)
-
-来源: `features/booking/booking.feature`
-
-### TC-BK-01 预约成功并支付成功
-- 前置: 在预约页 `/booking`。
-- 步骤:
-  1. 选择一个时长为 30 分钟倍数的服务（如 60 分钟）。
-  2. 前进到下一周（默认周可能全部为过去日期）。
-  3. 选择第一个可预约时段。
-  4. 填写客户信息（姓名/邮箱/电话）并提交，捕获 `bookingId` + `clientSecret`。
-  5. 伪造并发送已签名的 `payment_intent.succeeded` webhook。
-- 预期: 确认页状态徽章 `data-status=confirmed`；数据库中该预约 `status=confirmed`。
-- 自动化: `Booking › Customer books an available slot and payment succeeds`
-- 状态: ✅（Run #003）
-
-### TC-BK-02 支付失败时预约不被确认
-- 前置: 在预约页。
-- 步骤: 同 TC-BK-01 第 1–4 步；随后发送 `payment_intent.payment_failed` webhook。
-- 预期: 数据库中该预约 `status` 不为 `confirmed`。
-- 自动化: `Booking › Payment fails and the booking is not confirmed`
-- 状态: ✅
-
-### TC-BK-03 非法签名的 webhook 被拒绝
-- 前置: 在预约页。
-- 步骤: 同 TC-BK-01 第 1–4 步；随后发送签名非法的 webhook。
-- 预期: webhook 接口返回 HTTP 400；数据库中该预约 `status` 不为 `confirmed`。
-- 自动化: `Booking › A webhook with an invalid signature is rejected`
-- 状态: ✅
+> Executable cases are Gherkin scenarios in `test/features/**/*.feature`; this document is the human-readable catalog.
+> Status from latest Run #005 (54 scenarios green, 1 xfail; see `test/doc/reports/`).
+> Legend: ✅ automated & passing ｜ ⚠️ automated, expected fail (xfail, backend defect) ｜ ⬜ not automated (backend gap).
+> Default preconditions: backend on `:5001` (`STRIPE_FAKE_PAYMENTS=true`), frontend on `:3000`,
+> test DB `bookingsys_test` migrated + seeded (admin, 3 services, Mon–Thu 09:00–17:00 hours).
+> Each case uses a unique customer email; data is cleaned up after the scenario.
 
 ---
 
-## 模块 B：产品下单 (Product Order)
+## Module A: Online Booking
 
-来源: `features/order/product-order.feature`
+Source: `features/booking/booking.feature`
 
-### TC-OD-01 产品下单并支付成功
-- 前置: 在产品下单页 `/order?product=White Magic`。
-- 步骤:
-  1. 填写下单客户信息（姓名/邮箱）。
-  2. 提交订单，捕获 `orderId` + `clientSecret`。
-  3. 发送 `payment_intent.succeeded` webhook。
-- 预期: 确认页状态徽章 `data-status=paid`；数据库中该订单 `status=paid`。
-- 自动化: `Place a product order › Customer orders a product and payment succeeds`
-- 状态: ✅
+### TC-BK-01 Booking succeeds and payment succeeds
+- Pre: On booking page `/booking`.
+- Steps:
+  1. Select a service with 30-minute slot granularity (e.g. 60 min).
+  2. Go to next week (default week may be all past dates).
+  3. Select the first available slot.
+  4. Fill customer info (name/email/phone), submit; capture `bookingId` + `clientSecret`.
+  5. Forge and send signed `payment_intent.succeeded` webhook.
+- Expected: Confirmation badge `data-status=confirmed`; DB `status=confirmed`.
+- Automation: `Booking › Customer books an available slot and payment succeeds`
+- Status: ✅ (Run #003)
 
----
+### TC-BK-02 Payment failure does not confirm booking
+- Pre: On booking page.
+- Steps: Same as TC-BK-01 steps 1–4; then send `payment_intent.payment_failed` webhook.
+- Expected: DB `status` is not `confirmed`.
+- Automation: `Booking › Payment fails and the booking is not confirmed`
+- Status: ✅
 
-## 模块 C：管理员登录 (Admin Login)
-
-来源: `features/admin/login.feature`
-
-### TC-AD-01 正确凭据登录成功
-- 前置: 在管理员登录页 `/admin/login`。
-- 步骤: 以种子管理员 `admin@massage.com / admin123` 登录，等待登录响应。
-- 预期: 跳转到 `/admin/dashboard`，并可访问 `/admin/bookings`。
-- 自动化: `Admin login › Admin signs in with valid credentials`
-- 状态: ✅（Run #003；此前失败原因与修复见 run-002 §4.2）
-
-### TC-AD-02 错误密码登录失败并提示
-- 前置: 在管理员登录页。
-- 步骤: 以 `admin@massage.com` + 错误密码 `wrong-password` 登录。
-- 预期: 显示登录错误提示 `data-testid=admin-login-error`。
-- 自动化: `Admin login › Admin sign-in fails with wrong password`
-- 状态: ✅（Run #003；此前失败原因与修复见 run-002 §4.1）
+### TC-BK-03 Invalid webhook signature rejected
+- Pre: On booking page.
+- Steps: Same as TC-BK-01 steps 1–4; then send webhook with invalid signature.
+- Expected: Webhook returns HTTP 400; DB `status` is not `confirmed`.
+- Automation: `Booking › A webhook with an invalid signature is rejected`
+- Status: ✅
 
 ---
 
-## 模块 D：改期 (Reschedule)
+## Module B: Product Order
 
-来源: `features/booking/reschedule.feature`
+Source: `features/order/product-order.feature`
 
-### TC-RS-01 客户申请改期，管理员审批通过
-- 前置: 已存在一个已确认的预约（复用 TC-BK-01 的创建+成功 webhook），并取得其管理 token。
-- 步骤:
-  1. 打开 `/booking/manage/:token`，选择新日期 → 选择时段 → 提交改期申请。
-  2. 通过管理员 API（`POST /admin/reschedule-requests/{id}/approve`，需管理员令牌）审批通过。
-- 预期: 数据库中该改期申请 `status=approved`。
-- 自动化: `Reschedule a booking › Customer requests a reschedule and admin approves it`
-- 状态: ✅（Run #003）
+### TC-OD-01 Product order pays successfully
+- Pre: On `/order?product=White Magic`.
+- Steps:
+  1. Fill customer info (name/email).
+  2. Submit order; capture `orderId` + `clientSecret`.
+  3. Send `payment_intent.succeeded` webhook.
+- Expected: Confirmation badge `data-status=paid`; DB `status=paid`.
+- Automation: `Place a product order › Customer orders a product and payment succeeds`
+- Status: ✅
 
 ---
 
-## 覆盖汇总（Run #005，54 个可执行场景）
+## Module C: Admin Login
 
-前文 TC-*-01 为各模块的核心 happy path（含 `@smoke` 标签），其余扩展用例见下方 backlog；
-两者均已自动化。场景按执行层分为两类：
+Source: `features/admin/login.feature`
 
-- **浏览器 E2E（44）**——真实浏览器跨 UI→API→DB，`npm run test:e2e`。
-- **API/契约层（10，标 `@api`）**——不开浏览器，DB 播种 + 伪造 webhook / 直连 API 断言，`npm run test:api`。
-  本质是后端集成测试，故从浏览器 E2E 中剥离；`npm run test:regression` 跑全部两层。
+### TC-AD-01 Valid credentials login succeeds
+- Pre: On `/admin/login`.
+- Steps: Log in as seeded admin `admin@massage.com / admin123`; wait for login response.
+- Expected: Redirect to `/admin/dashboard`; can access `/admin/bookings`.
+- Automation: `Admin login › Admin signs in with valid credentials`
+- Status: ✅ (Run #003; prior failure/fix in run-002 §4.2)
 
-| 模块 | 来源 feature | E2E | API(@api) | 状态 |
+### TC-AD-02 Wrong password shows error
+- Pre: On admin login page.
+- Steps: `admin@massage.com` + wrong password `wrong-password`.
+- Expected: Login error visible `data-testid=admin-login-error`.
+- Automation: `Admin login › Admin sign-in fails with wrong password`
+- Status: ✅ (Run #003; prior failure/fix in run-002 §4.1)
+
+---
+
+## Module D: Reschedule
+
+Source: `features/booking/reschedule.feature`
+
+### TC-RS-01 Customer requests reschedule; admin approves
+- Pre: Confirmed booking exists (TC-BK-01 flow + success webhook); manage token available.
+- Steps:
+  1. Open `/booking/manage/:token`, pick new date → slot → submit request.
+  2. Approve via admin API (`POST /admin/reschedule-requests/{id}/approve` with admin token).
+- Expected: DB request `status=approved`.
+- Automation: `Reschedule a booking › Customer requests a reschedule and admin approves it`
+- Status: ✅ (Run #003)
+
+---
+
+## Coverage Summary (Run #005, 54 executable scenarios)
+
+TC-*-01 entries above are core happy paths per module (some tagged `@smoke`); extended cases are in the backlog below — all automated unless noted.
+Two execution layers:
+
+- **Browser E2E (44)** — real browser UI→API→DB, `npm run test:e2e`.
+- **API/contract (10, `@api`)** — no browser; DB seed + forged webhook / direct API, `npm run test:api`.
+  Backend integration tests peeled from browser E2E; `npm run test:regression` runs both.
+
+| Module | Source feature | E2E | API(@api) | Status |
 |---|---|---|---|---|
-| 预约 Booking | `booking/booking.feature` | 13 | 4 | ✅ |
-| 预约并发/hold 过期 | `booking/concurrency.feature` | 0 | 3 | ✅ |
-| 改期 Reschedule | `booking/reschedule.feature` | 8 | 3 | ✅（1 个 xfail：TC-RS-10） |
-| 产品下单 Order | `order/product-order.feature` | 11 | 0 | ✅ |
-| 管理员登录 Admin | `admin/login.feature` | 2 | 0 | ✅ |
-| 管理员会话 Admin | `admin/session.feature` | 5 | 0 | ✅ |
-| 管理员后台管理 Admin | `admin/management.feature` | 5 | 0 | ✅ |
-| **合计** | | **44** | **10** | **53 通过 + 1 xfail** |
+| Booking | `booking/booking.feature` | 13 | 4 | ✅ |
+| Booking concurrency/hold expiry | `booking/concurrency.feature` | 0 | 3 | ✅ |
+| Reschedule | `booking/reschedule.feature` | 8 | 3 | ✅ (1 xfail: TC-RS-10) |
+| Product order | `order/product-order.feature` | 11 | 0 | ✅ |
+| Admin login | `admin/login.feature` | 2 | 0 | ✅ |
+| Admin session | `admin/session.feature` | 5 | 0 | ✅ |
+| Admin management | `admin/management.feature` | 5 | 0 | ✅ |
+| **Total** | | **44** | **10** | **53 pass + 1 xfail** |
 
-> `@api` 场景：并发与 hold 过期（TC-BK-08/09/10）、改期复核边界（TC-RS-09/10/11）、
-> 可用性端点校验与边界（"availability API rejects…"、"opening/closing boundaries"、"blocked period…"）。
+> `@api` scenarios: concurrency & hold expiry (TC-BK-08/09/10), reschedule review edges (TC-RS-09/10/11),
+> availability API validation and boundaries.
 
-## 扩展用例 Backlog（实现状态）
+## Extended Backlog (implementation status)
 
-> 状态图例：✅ 已自动化且通过 ｜ ⚠️ 已自动化但为预期失败（xfail，后端缺陷）｜ ⬜ 未自动化（后端缺口）。
-> 截至 Run #005，下列扩展场景除标注外均已自动化。
+> Legend: ✅ automated & passing ｜ ⚠️ automated xfail (backend defect) ｜ ⬜ not automated (backend gap).
+> As of Run #005, all extended scenarios below are automated except where noted.
 
-### 模块 A：预约 (Booking)
+### Module A: Booking
 
-| ID | 场景 | 预期要点 | 状态 |
+| ID | Scenario | Expected | Status |
 |---|---|---|---|
-| TC-BK-01 | 单时段成功支付 | UI confirmed + `bookings.status=confirmed` + `payments.status=succeeded` | ✅ |
-| TC-BK-02 | 支付失败不确认 | DB payment failed + booking 未确认 | ✅ |
-| TC-BK-03 | 非法签名 webhook 被拒 | webhook 400 + booking 未确认 | ✅ |
-| TC-BK-04 | 一次结账多时段 | 成功支付后组内每个 booking 均 confirmed | ✅ |
-| TC-BK-05 | 支付失败 UI 文案 | UI 显示 payment-failed 文案（DB 层已由 TC-BK-02 覆盖） | ✅ |
-| TC-BK-06 | 支付成功后立即看确认页 | webhook 未到时为 processing/pending，轮询后转 confirmed | ✅ |
-| TC-BK-07 | 选已被占用时段 | confirmed/pending 占用的时段从可用列表消失（UI 不再提供，见 Phase 0.1） | ✅ |
-| TC-BK-08 | 两客户同时抢同一时段（支付前） | A 先建 pending；B 在到达支付前被拦截（"no longer available"/冲突） | ✅ |
-| TC-BK-09 | 两客户都到支付（并发确认） | A webhook 成功 confirm；B 后到 webhook 成功但 booking → cancelled（冲突/过期复核），非 confirmed | ✅ |
-| TC-BK-10 | pending hold 过期后支付成功 | webhook 成功不 confirm；booking → cancelled，payment → succeeded（待人工复核/退款） | ✅ |
-| TC-BK-11 | 表单校验 | 缺服务/时段、缺名/姓/邮箱/电话、邮箱格式、过去日期、非 30 分钟时长 | ✅ |
-| TC-BK-12 | 可用性边界 | 休息日、封锁时段重叠、正好营业开始/结束的时段 | ✅ |
+| TC-BK-01 | Single-slot pay success | UI confirmed + `bookings.status=confirmed` + `payments.status=succeeded` | ✅ |
+| TC-BK-02 | Pay failure | DB payment failed + booking not confirmed | ✅ |
+| TC-BK-03 | Bad webhook signature | webhook 400 + booking not confirmed | ✅ |
+| TC-BK-04 | Multi-slot checkout | After pay, every booking in group confirmed | ✅ |
+| TC-BK-05 | Pay-fail UI copy | UI shows payment-failed (DB covered by TC-BK-02) | ✅ |
+| TC-BK-06 | Confirmation before webhook | processing/pending until poll → confirmed | ✅ |
+| TC-BK-07 | Taken slot | Occupied slot absent from list (Phase 0.1) | ✅ |
+| TC-BK-08 | Two customers, same slot (pre-pay) | A pending; B blocked before pay | ✅ |
+| TC-BK-09 | Both reach pay (concurrent confirm) | A confirmed; B cancelled after B's webhook | ✅ |
+| TC-BK-10 | Pay after hold expiry | webhook succeeds but booking cancelled; payment succeeded | ✅ |
+| TC-BK-11 | Form validation | missing service/slot, name/email/phone, email format, past date, non-30-min duration | ✅ |
+| TC-BK-12 | Availability edges | closed day, blocked overlap, open/close boundary slots | ✅ |
 
-### 模块 D：改期 (Reschedule)
+### Module D: Reschedule
 
-| ID | 场景 | 预期要点 | 状态 |
+| ID | Scenario | Expected | Status |
 |---|---|---|---|
-| TC-RS-01 | 申请 + 管理员审批通过 | DB 改期申请 `status=approved` | ✅ |
-| TC-RS-02 | manage 页展示当前预约+历史并提交 | DB 一条 pending 改期申请 | ✅ |
-| TC-RS-03 | 非法/未知 manage token | 显示加载错误，无表单操作 | ✅ |
-| TC-RS-04 | cancelled/completed/no-show/arrived 预约 | 不能提交改期 | ✅ |
-| TC-RS-05 | 同一预约二次 pending 申请 | 收到 existing-pending 冲突 | ✅ |
-| TC-RS-06 | 打开后目标时段变不可用 | 提交被拒，不创建 pending | ✅ |
-| TC-RS-07 | 管理员通过 UI 批准 | admin UI / 客户 manage UI / DB dates 三处一致 | ✅ |
-| TC-RS-08 | 管理员拒绝 | 申请 rejected，DB dates 完全不变 | ✅ |
-| TC-RS-09 | 复核已复核的申请 | 报错；dates 不再变 | ✅ |
-| TC-RS-10 | 两管理员并发复核 | 先成功者胜；后者 already-reviewed/not-found（后端未加锁读，并发两次均成功 → xfail，详见 run-005 §4） | ⚠️ |
-| TC-RS-11 | 存在多个 pending（种子/历史） | 批准其一会拒绝同 booking 其余 pending | ✅ |
+| TC-RS-01 | Request + admin approve | DB request `status=approved` | ✅ |
+| TC-RS-02 | Manage page + submit | One pending request in DB | ✅ |
+| TC-RS-03 | Invalid/unknown manage token | Load error, no form | ✅ |
+| TC-RS-04 | cancelled/completed/no-show/arrived | Cannot submit reschedule | ✅ |
+| TC-RS-05 | Second pending on same booking | existing-pending conflict | ✅ |
+| TC-RS-06 | Target slot becomes unavailable | Rejected, no new pending | ✅ |
+| TC-RS-07 | Admin UI approve | admin UI / manage UI / DB dates align | ✅ |
+| TC-RS-08 | Admin reject | request rejected; DB dates unchanged | ✅ |
+| TC-RS-09 | Re-review already reviewed | Error; dates unchanged | ✅ |
+| TC-RS-10 | Concurrent admin review | Exactly one wins; other already-reviewed (backend unlocked read → xfail, run-005 §4) | ⚠️ |
+| TC-RS-11 | Multiple pending (seeded) | Approving one rejects other pending on same booking | ✅ |
 
-### 模块 B：产品下单 (Product Order)
+### Module B: Product Order
 
-| ID | 场景 | 预期要点 | 状态 |
+| ID | Scenario | Expected | Status |
 |---|---|---|---|
-| TC-OD-01 | White Magic 成功支付 | UI + `product_orders.status=paid` | ✅ |
-| TC-OD-02 | 各商品成功路径 | White Magic / Love Spell / Money Spell（可参数化） | ✅ |
-| TC-OD-03 | 未知 product 查询 | 显示 "Product not found"，不创建 DB 行 | ✅ |
-| TC-OD-04 | 即时 Stripe 确认失败 | 订单保持 pending，确认页保持 processing | ✅ |
-| TC-OD-05 | 产品订单支付失败处理 | 设计上无 failed 状态：失败/未发 webhook 时订单保持 pending、UI 保持 processing（见 Phase 0.4） | ✅ |
-| TC-OD-06 | 表单校验 | 必填名/姓/邮箱；可选电话/intention；邮箱格式错 | ✅ |
+| TC-OD-01 | White Magic pay success | UI + `product_orders.status=paid` | ✅ |
+| TC-OD-02 | Per-product success | White Magic / Love Spell / Money Spell (parameterized) | ✅ |
+| TC-OD-03 | Unknown product | "Product not found", no DB row | ✅ |
+| TC-OD-04 | Immediate Stripe failure | Order stays pending; confirmation processing | ✅ |
+| TC-OD-05 | Product pay failure handling | No `failed` status by design: fail/no webhook → pending + processing UI (Phase 0.4) | ✅ |
+| TC-OD-06 | Form validation | required name/email; optional phone/intention; bad email format | ✅ |
 
-### 模块 C：管理员 (Admin)
+### Module C: Admin
 
-| ID | 场景 | 预期要点 | 状态 |
+| ID | Scenario | Expected | Status |
 |---|---|---|---|
-| TC-AD-01 | 登录成功 | 跳转 dashboard + 存 token | ✅ |
-| TC-AD-02 | 登录失败 | 留在登录页 + "Invalid credentials" | ✅ |
-| TC-AD-03 | 无 token 访问 admin 路由 | 重定向 `/admin/login` | ✅ |
-| TC-AD-04 | access 过期 + refresh 有效 | 自动刷新并停留在 bookings | ✅ |
-| TC-AD-05 | refresh 过期/无效 | 清 token + 重定向 `/admin/login` | ✅ |
-| TC-AD-06 | 同浏览器双 admin 页登出 | A 登出后 B 执行操作 → B 在 401 后重定向登录 | ✅ |
-| TC-AD-07 | 预约列表筛选 | 按状态 + 搜索邮箱命中/排除目标行 | ✅ |
-| TC-AD-08 | 预约详情 | 客户/服务/时间/支付状态/manage token/改期申请 | ✅ |
-| TC-AD-09 | 管理员手动改期 | 校验时长；成功更新 DB，时长不匹配被拒且 DB 不变 | ✅ |
-| TC-AD-10 | 管理可用性 | 营业日开关、起止时间、建/删封锁；公开时段反映变化 | ✅ |
-| TC-AD-11 | 可用性负例 | 封锁 end<start（400）、删已删封锁（404）已覆盖；营业时间 start>end 后端**未校验**，作为已知缺口暂不自动化 | ⬜ |
+| TC-AD-01 | Login success | dashboard + token stored | ✅ |
+| TC-AD-02 | Login failure | stay on login + "Invalid credentials" | ✅ |
+| TC-AD-03 | No token on admin route | redirect `/admin/login` | ✅ |
+| TC-AD-04 | Expired access + valid refresh | auto refresh, stay on bookings | ✅ |
+| TC-AD-05 | Invalid refresh | clear tokens + redirect login | ✅ |
+| TC-AD-06 | Dual admin tabs logout | A logs out → B action → B redirected on 401 | ✅ |
+| TC-AD-07 | Booking list filters | status + email search hit/exclude | ✅ |
+| TC-AD-08 | Booking detail | customer/service/time/payment/manage token/requests | ✅ |
+| TC-AD-09 | Admin manual reschedule | duration check; success updates DB; mismatch rejected | ✅ |
+| TC-AD-10 | Availability management | day toggle, hours, create/delete blocks; public slots reflect | ✅ |
+| TC-AD-11 | Availability negatives | block end<start (400), delete missing block (404) covered; business-hours start>end **not validated** by backend — known gap, not automated | ⬜ |
 
-> 说明：截至 Run #005，上述 backlog 已全部自动化，仅余两处与后端相关的缺口：
-> - **TC-RS-10（⚠️ xfail）**：后端 `ApproveRescheduleRequestAsync` 用不加锁 `SELECT` 读取申请状态，并发两次批准均成功；断言保留为正确预期，场景打 `@fail`，待后端改加锁读后摘除。
-> - **TC-AD-11（⬜ 部分）**：营业时间 `start > end` 后端当前不校验（见 Phase 0.4），该子例暂不自动化；其余可用性负例（block end<start、删已删 block）已覆盖。
+> As of Run #005, the backlog above is fully automated except two backend-related gaps:
+> - **TC-RS-10 (⚠️ xfail)**: `ApproveRescheduleRequestAsync` uses unlocked `SELECT`; concurrent approves both succeed. Assertion kept; `@fail` until backend adds locking.
+> - **TC-AD-11 (⬜ partial)**: business-hours `start > end` not validated (Phase 0.4); sub-case not automated. Other negatives (block end<start, delete missing block) are covered.
