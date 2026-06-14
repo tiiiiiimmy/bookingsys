@@ -1,8 +1,15 @@
 import { expect } from '@playwright/test';
-import { Given, When, Then } from '../support/fixtures.js';
+import { Given, When, Then, After } from '../support/fixtures.js';
 import { sendPaymentWebhook, sendUnsignedWebhook, paymentIntentIdFromClientSecret } from '../support/stripe-mock.js';
 import { getBookingByEmail, getBookingsByEmail, insertConfirmedBooking } from '../support/db.js';
-import { getAvailableSlots, getSlotsResponse } from '../support/api.js';
+import {
+  adminLogin,
+  createAvailabilityBlock,
+  deleteAvailabilityBlock,
+  getAvailableSlots,
+  getSlotsResponse,
+  type AvailableSlot,
+} from '../support/api.js';
 import type { BookingPaymentInfo } from '../pages/BookingPage.js';
 
 // Scenario-scoped state (steps run sequentially within a scenario).
@@ -10,6 +17,17 @@ let payment: BookingPaymentInfo;
 let occupiedSlotStart: string;
 let slotsResponse: Response;
 let slotsBody: { error?: { message?: string } };
+let availableSlots: AvailableSlot[];
+let blockedSlotStart: string;
+let createdBlockId = 0;
+
+// Remove any availability block a scenario created, even on failure.
+After(async () => {
+  if (createdBlockId) {
+    await deleteAvailabilityBlock(await adminLogin(), createdBlockId);
+    createdBlockId = 0;
+  }
+});
 
 /** Monday of the week containing `date` (mirrors the booking page's week logic). */
 function mondayOf(date: Date): Date {
@@ -162,6 +180,36 @@ Then('the availability request is rejected because the date is in the past', () 
 Then('the availability request is rejected because the duration is invalid', () => {
   expect(slotsResponse.status).toBe(400);
   expect(slotsBody?.error?.message ?? '').toContain('multiple of 30');
+});
+
+Then('the closed day next week offers no slots', async ({ bookingPage }) => {
+  // Friday next week is a closed day (open days are Mon–Thu).
+  const friday = dateKey(addDays(mondayOf(new Date()), 7 + 4));
+  await bookingPage.expectNoSlotsOnDate(friday);
+});
+
+When('I request availability for an open day next week', async () => {
+  availableSlots = await getAvailableSlots(dateKey(addDays(mondayOf(new Date()), 7)), 60);
+});
+
+Then('a slot starts at the opening time', () => {
+  expect(availableSlots.some((slot) => slot.startTime.endsWith('T09:00:00'))).toBe(true);
+});
+
+Then('a slot ends at the closing time', () => {
+  expect(availableSlots.some((slot) => slot.endTime.endsWith('T17:00:00'))).toBe(true);
+});
+
+Given('an admin blocks the first open slot next week', async ({ adminToken }) => {
+  const slot = await findNextWeekSlot();
+  blockedSlotStart = slot.startTime;
+  const block = await createAvailabilityBlock(adminToken, slot.startTime, slot.endTime);
+  createdBlockId = block.id;
+});
+
+Then('the blocked slot is no longer available', async () => {
+  const slots = await getAvailableSlots(blockedSlotStart.slice(0, 10), 60);
+  expect(slots.some((slot) => slot.startTime === blockedSlotStart)).toBe(false);
 });
 
 Then('all bookings for the customer are confirmed', async ({ customerEmail }) => {
