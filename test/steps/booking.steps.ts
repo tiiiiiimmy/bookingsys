@@ -1,9 +1,17 @@
 import { expect } from '@playwright/test';
 import { Given, When, Then, After } from '../support/fixtures.js';
 import { sendPaymentWebhook, sendUnsignedWebhook, paymentIntentIdFromClientSecret } from '../support/stripe-mock.js';
-import { getBookingByEmail, getBookingsByEmail, insertConfirmedBooking } from '../support/db.js';
+import {
+  expireBookingHold,
+  getBookingByEmail,
+  getBookingsByEmail,
+  getBookingStatusReason,
+  insertConfirmedBooking,
+  insertPendingBooking,
+} from '../support/db.js';
 import {
   adminLogin,
+  bookSlotViaApi,
   createAvailabilityBlock,
   deleteAvailabilityBlock,
   getAvailableSlots,
@@ -20,6 +28,19 @@ let slotsBody: { error?: { message?: string } };
 let availableSlots: AvailableSlot[];
 let blockedSlotStart: string;
 let createdBlockId = 0;
+// Concurrency / hold-expiry state.
+let concurrencySlot: AvailableSlot;
+let bookingAId: number;
+let bookingBId: number;
+let piA: string;
+let piB: string;
+let bookResponse: Response;
+let bookBody: { error?: { message?: string } };
+
+/** ISO 'YYYY-MM-DDTHH:mm:ss' -> MySQL DATETIME 'YYYY-MM-DD HH:mm:ss'. */
+function toSqlDateTime(iso: string): string {
+  return iso.replace('T', ' ');
+}
 
 // Remove any availability block a scenario created, even on failure.
 After(async () => {
@@ -131,11 +152,10 @@ Then('the booking is not confirmed in the database', async ({ customerEmail }) =
 Given('a confirmed booking already occupies a slot next week', async ({ customerEmail }) => {
   const slot = await findNextWeekSlot();
   occupiedSlotStart = slot.startTime;
-  // ISO 'YYYY-MM-DDTHH:mm:ss' -> MySQL DATETIME 'YYYY-MM-DD HH:mm:ss'.
   await insertConfirmedBooking({
     email: customerEmail,
-    startTime: slot.startTime.replace('T', ' '),
-    endTime: slot.endTime.replace('T', ' '),
+    startTime: toSqlDateTime(slot.startTime),
+    endTime: toSqlDateTime(slot.endTime),
     serviceTypeId: 12,
   });
 });
@@ -210,6 +230,113 @@ Given('an admin blocks the first open slot next week', async ({ adminToken }) =>
 Then('the blocked slot is no longer available', async () => {
   const slots = await getAvailableSlots(blockedSlotStart.slice(0, 10), 60);
   expect(slots.some((slot) => slot.startTime === blockedSlotStart)).toBe(false);
+});
+
+// --- Concurrency & hold expiry (TC-BK-08/09/10) ---
+
+Given('customer A holds a slot next week without paying', async ({ customerEmail }) => {
+  concurrencySlot = await findNextWeekSlot();
+  piA = `pi_hold_${Date.now()}`;
+  const a = await insertPendingBooking({
+    email: customerEmail,
+    startTime: toSqlDateTime(concurrencySlot.startTime),
+    endTime: toSqlDateTime(concurrencySlot.endTime),
+    serviceTypeId: 12,
+    paymentIntentId: piA,
+  });
+  bookingAId = a.bookingId;
+});
+
+When('customer B attempts to book the same slot', async ({ customerEmail }) => {
+  bookResponse = await bookSlotViaApi({
+    email: customerEmail,
+    startTime: concurrencySlot.startTime,
+    endTime: concurrencySlot.endTime,
+    serviceTypeId: 12,
+  });
+  bookBody = await bookResponse.json().catch(() => ({}));
+});
+
+Then('customer B is rejected with a slot conflict', () => {
+  expect(bookResponse.status).toBe(409);
+  expect(bookBody?.error?.message ?? '').toMatch(/no longer available|conflicts with existing booking/);
+});
+
+Given("customer A has paid and confirmed a slot next week", async ({ customerEmail }) => {
+  concurrencySlot = await findNextWeekSlot();
+  piA = `pi_a_${Date.now()}`;
+  const a = await insertPendingBooking({
+    email: customerEmail,
+    startTime: toSqlDateTime(concurrencySlot.startTime),
+    endTime: toSqlDateTime(concurrencySlot.endTime),
+    serviceTypeId: 12,
+    paymentIntentId: piA,
+  });
+  bookingAId = a.bookingId;
+  // Confirm A while it is the only hold on the slot, so its succeeded webhook finds no conflict.
+  await sendPaymentWebhook(piA, 'succeeded');
+  await expect
+    .poll(async () => (await getBookingStatusReason(bookingAId))?.status, { timeout: 10_000 })
+    .toBe('confirmed');
+});
+
+When('customer B pays for the same slot', async ({ customerEmail }) => {
+  piB = `pi_b_${Date.now()}`;
+  const b = await insertPendingBooking({
+    email: customerEmail,
+    startTime: toSqlDateTime(concurrencySlot.startTime),
+    endTime: toSqlDateTime(concurrencySlot.endTime),
+    serviceTypeId: 12,
+    paymentIntentId: piB,
+  });
+  bookingBId = b.bookingId;
+  await sendPaymentWebhook(piB, 'succeeded');
+});
+
+Then("customer A's booking stays confirmed", async () => {
+  expect((await getBookingStatusReason(bookingAId))?.status).toBe('confirmed');
+});
+
+Then("customer B's booking is cancelled for review", async () => {
+  await expect
+    .poll(async () => (await getBookingStatusReason(bookingBId))?.status, { timeout: 10_000 })
+    .toBe('cancelled');
+  expect((await getBookingStatusReason(bookingBId))?.cancellation_reason ?? '').toContain(
+    'hold expired or conflicted',
+  );
+});
+
+Given('a booking whose hold has expired', async ({ customerEmail }) => {
+  concurrencySlot = await findNextWeekSlot();
+  piA = `pi_exp_${Date.now()}`;
+  const a = await insertPendingBooking({
+    email: customerEmail,
+    startTime: toSqlDateTime(concurrencySlot.startTime),
+    endTime: toSqlDateTime(concurrencySlot.endTime),
+    serviceTypeId: 12,
+    paymentIntentId: piA,
+  });
+  bookingAId = a.bookingId;
+  await expireBookingHold(bookingAId);
+});
+
+When("the expired booking's payment succeeds", async () => {
+  await sendPaymentWebhook(piA, 'succeeded');
+});
+
+Then('the booking is cancelled for review', async () => {
+  await expect
+    .poll(async () => (await getBookingStatusReason(bookingAId))?.status, { timeout: 10_000 })
+    .toBe('cancelled');
+  expect((await getBookingStatusReason(bookingAId))?.cancellation_reason ?? '').toContain(
+    'hold expired or conflicted',
+  );
+});
+
+Then('the payment is recorded as succeeded', async ({ customerEmail }) => {
+  await expect
+    .poll(async () => (await getBookingByEmail(customerEmail))?.payment_status, { timeout: 10_000 })
+    .toBe('succeeded');
 });
 
 Then('all bookings for the customer are confirmed', async ({ customerEmail }) => {
