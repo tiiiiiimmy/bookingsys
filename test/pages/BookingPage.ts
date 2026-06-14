@@ -66,6 +66,17 @@ export class BookingPage {
     await expect(this.page.getByTestId('booking-error')).toContainText(message);
   }
 
+  /**
+   * Assert a given day (by date key 'YYYY-MM-DD') offers no slots, while the week did
+   * render — used for closed days, whose column shows the empty-state instead of slots.
+   */
+  async expectNoSlotsOnDate(dateKey: string) {
+    await expect(this.page.locator('[data-testid="booking-day"]').first()).toBeVisible();
+    await expect(
+      this.page.locator(`[data-testid="booking-day"][data-date="${dateKey}"] [data-testid="booking-slot-item"]`),
+    ).toHaveCount(0);
+  }
+
   async fillCustomer(email: string) {
     await this.page.getByTestId('booking-first-name').fill('Test');
     await this.page.getByTestId('booking-last-name').fill('Customer');
