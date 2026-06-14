@@ -1,6 +1,6 @@
 # Psychic Magic — Psychic Consultation & Spell Product Site
 
-An online business system for psychics and readers: **Psychic Reading appointments** and **spell product purchases**, both paid via Stripe. The brand site is [Psychic Magic](http://localhost:3000), operated by New Zealand psychic Manon.
+An online business system for psychics and readers: **Psychic Reading appointments** and **spell product purchases**, both paid via Stripe. The brand site is [Psychic Magic](https://www.psychicmagic.site/), operated by New Zealand psychic Manon.
 
 ## Project Overview
 
@@ -131,66 +131,54 @@ npm run dev
 
 Frontend runs at `http://localhost:3000`
 
-## Environment Variables
 
-### Backend (.env)
+## Testing
 
-```env
-# Database
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=bookingsys
-DB_USER=root
-DB_PASSWORD=your_mysql_password
 
-# JWT secrets (change in production!)
-JWT_SECRET=your-secret-key-change-in-production
-JWT_REFRESH_SECRET=your-refresh-secret-change-in-production
+>
+> | Branch | Contents |
+> |--------|----------|
+> | **`main`** | Production frontend/backend |
+> | **`test/e2e-bdd-playwright`** | Full **`test/`** tree on top of the app: Playwright + playwright-bdd scenarios, page objects, DB/API helpers, run reports (~54 automated scenarios) |
+>
+> To run tests locally or read implementations, check out the test branch:
+>
+> ```bash
+> git fetch origin
+> git checkout test/e2e-bdd-playwright
+> ```
+>
 
-# Stripe (test mode)
-STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
-STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
+### End-to-end automation (E2E)
 
-# Email (optional, notifications)
-SMTP_HOST=smtp.gmail.com
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
+The following applies to the `test/` directory on branch **`test/e2e-bdd-playwright`** (not present on `main`; see **Branch note** above).
 
-# App / frontend
-APP_BASE_URL=http://localhost:3000
-SUPPORT_EMAIL=support@example.com
-FRONTEND_URLS=http://localhost:3000,http://localhost:3001
-```
+The `test/` suite uses **Playwright + playwright-bdd**: a real browser drives the frontend against a
+**real .NET backend** with direct **MySQL test DB** assertions. Stripe is fully mocked (backend
+`STRIPE_FAKE_PAYMENTS` + forged signed webhooks; the test browser blocks `stripe.com`). No external services are called.
 
-### Frontend (.env)
+- **Layers**: **44 browser E2E** (`test:e2e`, UI→API→DB) + **10 API/contract** scenarios
+  (`test:api`, no browser; DB seed + forged webhooks / direct API asserts); `test:regression` runs all 54.
+- **Coverage** (UI → API → DB):
+  - Booking (pay success/fail, bad signature, multi-slot, confirmation polling, slot conflict, concurrency & hold expiry, form validation, availability edges)
+  - Reschedule (manage page states, conflict requests, admin UI approve/reject, review edge cases)
+  - Product orders (White Magic / Love Spell / Money Spell success, unknown product, unpaid stays pending, form validation)
+  - Admin (login, session guard/refresh/dual-tab logout, filters/detail/manual reschedule/availability management)
+- **Run**:
+  ```bash
+  cd test
+  npm install && npx playwright install chromium
+  cp .env.test.example .env.test   # Fill in locally; API_URL port is 5001
+  npm run test:regression          # Full: E2E + API (54)
+  npm run test:e2e                 # Browser E2E only (44)
+  npm run test:api                 # API/contract only (10, fastest)
+  npm run test:smoke               # Core @smoke scenarios (4)
+  ```
+  > Stop any dev backend on the test port before running (tests start their own backend on `bookingsys_test`).
+- **Docs**: Suite guide [`test/README.md`](test/README.md), case list [`test/doc/test-cases.md`](test/doc/test-cases.md), reports [`test/doc/reports/`](test/doc/reports/).
+- **Known gaps**: TC-RS-10 (backend reschedule approval race, xfail); TC-AD-11 business-hours `start>end` sub-case (backend does not validate; not automated).
 
-```env
-VITE_API_URL=http://localhost:5000/api
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
-```
 
-## Development Progress
-
-✅ **Phase 1: Foundation (done)**
-- ✅ ASP.NET Core backend
-- ✅ MySQL database and migrations
-- ✅ Admin auth (JWT)
-- ✅ React frontend scaffold
-- ✅ Admin login and dashboard
-
-✅ **Phase 2: Availability (done)**
-- ✅ Business hours management
-- ✅ Blocked-period management
-- ✅ Public slot availability API
-
-✅ **Phase 3–6: Pre-launch main flows (done)**
-- ✅ Psychic Reading: pay before confirm
-- ✅ Stripe PaymentIntent + webhook updates
-- ✅ Admin booking list, detail, status updates, direct reschedule
-- ✅ Customer list and detail
-- ✅ Customer reschedule requests and admin review
-- ✅ Spell product checkout (White Magic / Love Spell / Money Spell) and fulfillment
-- ✅ Basic email notifications
 
 ## API Endpoints
 
@@ -234,24 +222,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 - `admins` — Admin users
 - `service_types` — Appointment services and pricing
 
-## Testing
 
-> **Branch note (read this on `main`)**  
-> This document ships on **`main`** and describes the full Psychic Magic site. The **runnable automated test suite is not on `main`**; it lives on feature branch **`test/e2e-bdd-playwright`**.
->
-> | Branch | Contents |
-> |--------|----------|
-> | **`main`** | Production frontend/backend + this README; under `test/` only the test **design** doc [`test/doc/test-design.md`](test/doc/test-design.md) |
-> | **`test/e2e-bdd-playwright`** | Full **`test/`** tree on top of the app: Playwright + playwright-bdd scenarios, page objects, DB/API helpers, run reports (~54 automated scenarios) |
->
-> To run tests locally or read implementations, check out the test branch:
->
-> ```bash
-> git fetch origin
-> git checkout test/e2e-bdd-playwright
-> ```
->
-> Before merging to `main`, run `cd test && npm run test:regression` on that branch for a full regression. Latest reports: [`test/doc/reports/`](test/doc/reports/) (e.g. run #005: 54 passed, 1 xfail).
 
 ### Manual access
 - **Customer home**: http://localhost:3000
@@ -260,34 +231,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 - **Admin login**: http://localhost:3000/admin/login
 - **Admin dashboard**: http://localhost:3000/admin/dashboard
 
-### End-to-end automation (E2E)
 
-The following applies to the `test/` directory on branch **`test/e2e-bdd-playwright`** (not present on `main`; see **Branch note** above).
-
-The `test/` suite uses **Playwright + playwright-bdd**: a real browser drives the frontend against a
-**real .NET backend** with direct **MySQL test DB** assertions. Stripe is fully mocked (backend
-`STRIPE_FAKE_PAYMENTS` + forged signed webhooks; the test browser blocks `stripe.com`). No external services are called.
-
-- **Layers**: **44 browser E2E** (`test:e2e`, UI→API→DB) + **10 API/contract** scenarios
-  (`test:api`, no browser; DB seed + forged webhooks / direct API asserts); `test:regression` runs all 54.
-- **Coverage** (UI → API → DB):
-  - Booking (pay success/fail, bad signature, multi-slot, confirmation polling, slot conflict, concurrency & hold expiry, form validation, availability edges)
-  - Reschedule (manage page states, conflict requests, admin UI approve/reject, review edge cases)
-  - Product orders (White Magic / Love Spell / Money Spell success, unknown product, unpaid stays pending, form validation)
-  - Admin (login, session guard/refresh/dual-tab logout, filters/detail/manual reschedule/availability management)
-- **Run**:
-  ```bash
-  cd test
-  npm install && npx playwright install chromium
-  cp .env.test.example .env.test   # Fill in locally; API_URL port is 5001
-  npm run test:regression          # Full: E2E + API (54)
-  npm run test:e2e                 # Browser E2E only (44)
-  npm run test:api                 # API/contract only (10, fastest)
-  npm run test:smoke               # Core @smoke scenarios (4)
-  ```
-  > Stop any dev backend on the test port before running (tests start their own backend on `bookingsys_test`).
-- **Docs**: Suite guide [`test/README.md`](test/README.md), case list [`test/doc/test-cases.md`](test/doc/test-cases.md), reports [`test/doc/reports/`](test/doc/reports/).
-- **Known gaps**: TC-RS-10 (backend reschedule approval race, xfail); TC-AD-11 business-hours `start>end` sub-case (backend does not validate; not automated).
 
 ## Security
 
