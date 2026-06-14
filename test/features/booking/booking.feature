@@ -2,6 +2,7 @@ Feature: Booking
   As a customer I want to book and pay
   so that my appointment is confirmed.
 
+  @smoke
   Scenario: Customer books an available slot and payment succeeds
     Given I am on the booking page
     When I select the first available service and slot

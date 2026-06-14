@@ -49,6 +49,8 @@ test/
 
 **TDD note (unchanged from 1.0):** the `.feature` + steps are the RED artifact; add `data-testid`/page-object/helper to reach GREEN; commit per task.
 
+**Tagging convention:** the suite uses Gherkin tags for layering — `@smoke` marks the few fast, stable happy paths (currently: booking pays→confirmed, product order paid, admin login). Run via `npm run test:smoke` (`playwright test --grep @smoke`); the default unfiltered run is regression. **The 2.0 backlog scenarios are NOT `@smoke`** — they are negatives, edge cases, concurrency, and admin-management depth. The one exception: tag the Task 1.4 verification scenario `Admin session › Seeded admin lands directly on bookings` with `@smoke` (it is a fast happy-path session check). Do not expand `@smoke` beyond one core path per module.
+
 ---
 
 ## Phase 0 — Backend-contract spikes
@@ -119,7 +121,7 @@ These resolve the exact messages/shapes the assertions need. Each spike reads ba
   ```
   (Keys are `accessToken` / `refreshToken`, confirmed against `AuthContext.jsx` + `api.js`. `addInitScript` re-applies on every navigation, so it survives `goto`.)
 - [ ] **Step 2:** `support/fixtures.ts` — add fixture `adminPage: Page` (an already-authenticated page): builds on `page`, calls `seedAdminAuthInBrowser(page)`, then `use(page)`. Admin-UI scenarios depend on `adminPage` and go straight to `/admin/...` — no login screen.
-- [ ] **Step 3 (verify):** a smoke scenario `Admin session › Seeded admin lands directly on bookings` — `Given I am authenticated as admin` (uses `adminPage`), `When I open the admin bookings page` (`goto('/admin/bookings')`), `Then I land on the admin bookings page` (existing `AdminBookingsPage.expectLoaded()` — URL stays `/admin/bookings`, no redirect to `/admin/login`). Confirms the skip works.
+- [ ] **Step 3 (verify):** a smoke scenario `Admin session › Seeded admin lands directly on bookings` — tag it `@smoke` (per Tagging convention) — `Given I am authenticated as admin` (uses `adminPage`), `When I open the admin bookings page` (`goto('/admin/bookings')`), `Then I land on the admin bookings page` (existing `AdminBookingsPage.expectLoaded()` — URL stays `/admin/bookings`, no redirect to `/admin/login`). Confirms the skip works.
 - [ ] **Consumers:** Phase 3 Task 3.3 (admin approve/reject) and all of Phase 5.2/5.3/5.4 use `adminPage` instead of `AdminLoginPage.login()`. The real UI-login flow stays covered by TC-AD-01/02 (Phase 5.1), which keep using `AdminLoginPage`.
 - [ ] Commit: `test(e2e): authenticated adminPage fixture to skip UI login`.
 
@@ -262,7 +264,8 @@ These resolve the exact messages/shapes the assertions need. Each spike reads ba
 
 ### Task 6.1: Update test-cases statuses and run a full report
 - [ ] Flip implemented backlog rows in `test/doc/test-cases.md` from ⬜ to ✅ (leave any `test.fixme` as ⬜ with a note).
-- [ ] Run `cd test && npm run test:e2e`; record a new versioned report `test/doc/reports/run-00N-<date>.md` (run #, timestamp, pass/fail/flaky) and add a row to `test/doc/test-report.md`.
+- [ ] Run `cd test && npm run test:e2e` (full regression); record a new versioned report `test/doc/reports/run-00N-<date>.md` (run #, timestamp, pass/fail/flaky) and add a row to `test/doc/test-report.md`.
+- [ ] Verify the smoke subset still works: `npm run test:smoke` runs only the `@smoke`-tagged scenarios (3 from 1.0 + the Task 1.4 admin-session check) and passes.
 - [ ] Commit: `docs(test): e2e 2.0 results and updated case statuses`.
 
 ---

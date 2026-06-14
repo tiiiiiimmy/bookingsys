@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "test:e2e": "bddgen && playwright test",
+    "test:smoke": "bddgen && playwright test --grep @smoke",
+    "test:regression": "bddgen && playwright test",
     "test:e2e:ui": "bddgen && playwright test --ui",
     "test:report": "playwright show-report"
   },
