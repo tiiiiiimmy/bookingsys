@@ -25,13 +25,36 @@ When('the order payment succeeds', async () => {
   await sendPaymentWebhook(paymentIntentIdFromClientSecret(order.clientSecret), 'succeeded');
 });
 
+When('the order payment fails', async () => {
+  await sendPaymentWebhook(paymentIntentIdFromClientSecret(order.clientSecret), 'failed');
+});
+
 Then('I see the order marked paid', async () => {
   await orderPage.openConfirmation(order.orderId);
   await orderPage.expectStatus('paid');
+});
+
+Then('I see the order still processing', async () => {
+  await orderPage.openConfirmation(order.orderId);
+  await orderPage.expectProcessing();
+});
+
+Then('I see the product not found message', async () => {
+  await orderPage.expectProductNotFound();
 });
 
 Then('the order is paid in the database', async ({ customerEmail }) => {
   await expect
     .poll(async () => (await getProductOrderByEmail(customerEmail))?.status, { timeout: 10_000 })
     .toBe('paid');
+});
+
+Then('the product order is pending in the database', async ({ customerEmail }) => {
+  await expect
+    .poll(async () => (await getProductOrderByEmail(customerEmail))?.status, { timeout: 10_000 })
+    .toBe('pending');
+});
+
+Then('no product order is created for the customer', async ({ customerEmail }) => {
+  expect(await getProductOrderByEmail(customerEmail)).toBeUndefined();
 });

@@ -63,7 +63,7 @@ const ProductOrderConfirmationPage = () => {
       <section className="mx-auto max-w-6xl px-6 pb-20 pt-4 md:px-8">
         <div className="mb-8">
           <p className="mb-4 font-label text-xs uppercase tracking-[0.3em] text-tertiary">Order</p>
-          <h1 className="mb-4 font-headline text-5xl leading-tight text-on-surface md:text-6xl">{heading.title}</h1>
+          <h1 data-testid="order-confirmation-heading" className="mb-4 font-headline text-5xl leading-tight text-on-surface md:text-6xl">{heading.title}</h1>
           <p className="max-w-2xl text-lg leading-relaxed text-on-surface-variant">{heading.message}</p>
         </div>
 

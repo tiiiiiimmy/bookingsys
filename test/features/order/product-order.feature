@@ -24,3 +24,23 @@ Feature: Place a product order
       | White Magic |
       | Love Spell  |
       | Money Spell |
+
+  Scenario: Unknown product does not create an order
+    Given I am on the product order page for "Nope"
+    Then I see the product not found message
+    And no product order is created for the customer
+
+  Scenario: Failed product payment remains pending
+    Given I am on the product order page for "White Magic"
+    When I enter my order details
+    And I submit the order
+    And the order payment fails
+    Then I see the order still processing
+    And the product order is pending in the database
+
+  Scenario: Product order without a payment webhook remains pending
+    Given I am on the product order page for "White Magic"
+    When I enter my order details
+    And I submit the order
+    Then I see the order still processing
+    And the product order is pending in the database

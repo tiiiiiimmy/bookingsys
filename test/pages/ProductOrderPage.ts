@@ -41,4 +41,13 @@ export class ProductOrderPage {
       timeout: 15_000,
     });
   }
+
+  async expectProcessing() {
+    await expect(this.page.getByTestId('order-confirmation-heading')).toContainText('Processing Payment');
+    await this.expectStatus('pending');
+  }
+
+  async expectProductNotFound() {
+    await expect(this.page.getByTestId('order-not-found')).toBeVisible();
+  }
 }

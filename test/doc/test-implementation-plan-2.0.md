@@ -234,7 +234,7 @@ These resolve the exact messages/shapes the assertions need. Each spike reads ba
 - [x] TC-OD-03: open `/order?product=Nope` → `ProductOrderPage.expectProductNotFound()`; assert no `product_orders` row for the test email.
 - [x] TC-OD-04: submit order, then send a `payment_intent.payment_failed` webhook (or skip webhook per Task 0.4) → open confirmation, assert order stays `pending` (`order-status-badge` `data-status=pending`) and processing copy shows.
 - [x] TC-OD-05: documented as the same assertion as TC-OD-04 unless Task 0.4 adds a backend failed-status handler; if not, mark with a note that failed product payments remain `pending` by design.
-- [ ] Commit: `test(e2e): TC-OD-03/04/05 unknown product and non-paid states`.
+- [x] Commit: `test(e2e): TC-OD-03/04/05 unknown product and non-paid states`.
 
 ### Task 4.3: Order form validation (TC-OD-06)
 **Files:** `product-order.feature`, `order.steps.ts`, `ProductOrderPage.ts`

@@ -69,6 +69,10 @@ export function backendProcessEnv(): Record<string, string> {
     ADMIN_PASSWORD: env.admin.password,
     ADMIN_FIRST_NAME: env.admin.firstName,
     ADMIN_LAST_NAME: env.admin.lastName,
+    SMTP_HOST: '',
+    SMTP_USER: '', 
+    SMTP_PASS: '',
+
     // Local mock: backend returns synthetic payment intents, no real Stripe API.
     STRIPE_FAKE_PAYMENTS: 'true',
   };

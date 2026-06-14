@@ -73,7 +73,7 @@ const PaymentCheckoutForm = ({ orderId, clientSecret, productName, priceCents, f
     <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
       <PublicCard title="Payment confirmation">
         {error ? (
-          <div className="mb-5 rounded-2xl bg-error-container px-4 py-3 text-sm text-on-error-container">{error}</div>
+          <div data-testid="order-error" className="mb-5 rounded-2xl bg-error-container px-4 py-3 text-sm text-on-error-container">{error}</div>
         ) : null}
 
         <form className="space-y-6" onSubmit={handleSubmit}>
@@ -167,7 +167,7 @@ const ProductOrderPage = () => {
     return (
       <PublicPageShell brand={homeCopy.brand} footer={t.footer} navCopy={t.nav}>
         <div className="mx-auto max-w-2xl px-6 py-20 text-center">
-          <p className="text-on-surface-variant">Product not found.</p>
+          <p data-testid="order-not-found" className="text-on-surface-variant">Product not found.</p>
         </div>
       </PublicPageShell>
     );
@@ -185,7 +185,7 @@ const ProductOrderPage = () => {
 
       <section className="mx-auto max-w-7xl px-6 pb-20 md:px-8">
         {error ? (
-          <div className="mb-6 rounded-[1.5rem] bg-error-container px-5 py-4 text-sm text-on-error-container">{error}</div>
+          <div data-testid="order-error" className="mb-6 rounded-[1.5rem] bg-error-container px-5 py-4 text-sm text-on-error-container">{error}</div>
         ) : null}
 
         {step === 1 ? (
