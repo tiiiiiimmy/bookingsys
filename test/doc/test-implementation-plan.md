@@ -43,7 +43,7 @@ test/
     ManageBookingPage.ts
     ProductOrderPage.ts
   features/
-    booking/book-massage.feature
+    booking/booking.feature
     booking/reschedule.feature
     order/product-order.feature
     admin/login.feature
@@ -676,14 +676,14 @@ git commit -m "feat(test): booking page objects"
 ## Task 10: Booking — happy path (reference vertical)
 
 **Files:**
-- Create: `test/features/booking/book-massage.feature`
+- Create: `test/features/booking/booking.feature`
 - Create: `test/steps/booking.steps.ts`
 - Create: `test/steps/common.steps.ts`
 
-- [ ] **Step 1: Write the failing feature `book-massage.feature`**
+- [ ] **Step 1: Write the failing feature `booking.feature`**
 
 ```gherkin
-Feature: Book a massage
+Feature: Booking
   As a customer I want to book and pay for a massage
   so that my appointment is confirmed.
 
@@ -774,12 +774,12 @@ Then('the booking is not confirmed in the database', async ({ customerEmail }) =
 
 - [ ] **Step 4: Run and verify it fails for the right reason first**
 
-Run: `cd test && npm run test:e2e -- features/booking/book-massage.feature`
+Run: `cd test && npm run test:e2e -- features/booking/booking.feature`
 Expected initially: RED — failures should be about app behavior/selectors (e.g. a missing `data-testid` or a navigation assertion), NOT config/import errors. Fix any infra/selector gap revealed (e.g. an unmatched `data-testid` from Task 8, or the confirmation route flow), then re-run.
 
 - [ ] **Step 5: Run until green**
 
-Run: `cd test && npm run test:e2e -- features/booking/book-massage.feature`
+Run: `cd test && npm run test:e2e -- features/booking/booking.feature`
 Expected: PASS (2 scenarios). On failure, open the trace: `npm run test:report`.
 
 - [ ] **Step 6: Commit**
@@ -1096,14 +1096,14 @@ git commit -m "test(e2e): reschedule request + admin approval flow"
 ## Task 14: Exception scenario + full-suite run + docs
 
 **Files:**
-- Modify: `test/features/booking/book-massage.feature` (add invalid-signature scenario)
+- Modify: `test/features/booking/booking.feature` (add invalid-signature scenario)
 - Modify: `test/steps/booking.steps.ts`
 - Create: `test/doc/test-plan.md`
 - Modify: `README.md` (add an E2E section)
 
 - [ ] **Step 1: Add the webhook exception scenario**
 
-Append to `book-massage.feature`:
+Append to `booking.feature`:
 
 ```gherkin
   Scenario: A webhook with an invalid signature is rejected
@@ -1143,7 +1143,7 @@ Document: copy `test/.env.test.example` → `test/.env.test`, set Stripe test ke
 - [ ] **Step 5: Commit**
 
 ```bash
-git add test/features/booking/book-massage.feature test/steps/booking.steps.ts test/doc/test-plan.md README.md
+git add test/features/booking/booking.feature test/steps/booking.steps.ts test/doc/test-plan.md README.md
 git commit -m "test(e2e): webhook exception scenario, test plan doc, README e2e guide"
 ```
 

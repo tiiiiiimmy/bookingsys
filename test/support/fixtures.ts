@@ -14,6 +14,13 @@ type Fixtures = {
 };
 
 export const test = base.extend<Fixtures>({
+  // Payments are fully mocked via forged webhooks, so the browser never needs
+  // real Stripe.js. Block stripe.com to avoid the PaymentStep stalling on the
+  // external script load (slow/flaky through a local proxy → blank page).
+  page: async ({ page }, use) => {
+    await page.route(/(^https?:\/\/|\.)stripe\.com\//, (route) => route.abort());
+    await use(page);
+  },
   bookingPage: async ({ page }, use) => use(new BookingPage(page)),
   confirmationPage: async ({ page }, use) => use(new BookingConfirmationPage(page)),
   adminLoginPage: async ({ page }, use) => use(new AdminLoginPage(page)),

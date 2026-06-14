@@ -23,7 +23,11 @@ export default defineConfig({
   // booking slots, so they must not run in parallel.
   fullyParallel: false,
   workers: 1,
-  timeout: 60_000,
+  // Retry: the booking/reschedule flows occasionally render a blank page on a
+  // cold/slow first attempt (JIT + Stripe.js load via the local proxy); retries
+  // run clean. The longer flows also need more headroom than 60s.
+  retries: 2,
+  timeout: 90_000,
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
     baseURL: env.baseUrl,

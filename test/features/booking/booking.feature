@@ -1,5 +1,5 @@
-Feature: Book a massage
-  As a customer I want to book and pay for a massage
+Feature: Booking
+  As a customer I want to book and pay
   so that my appointment is confirmed.
 
   Scenario: Customer books an available slot and payment succeeds

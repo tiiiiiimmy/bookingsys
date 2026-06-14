@@ -3,7 +3,7 @@
 Date: 2026-06-14 · 模块: 前端 E2E (Playwright + BDD)
 
 > 可执行用例为 `test/features/**/*.feature` 中的 Gherkin 场景，本文档是其人类可读版本。
-> 状态来源: `test/doc/test-report.md`（✅ 通过 / ❌ 失败）。
+> 状态来源: 最新运行 Run #003（全绿，见 `test/doc/reports/`）。
 > 通用前置条件: 后端运行于 `:5001`（`STRIPE_FAKE_PAYMENTS=true`），前端运行于 `:3000`，
 > 测试库 `bookingsys_test` 已 migrate + seed（管理员、3 个服务项目、营业时间 周一–周四 09:00–17:00）。
 > 每个用例使用唯一化客户邮箱，结束后自动清理。
@@ -12,7 +12,7 @@ Date: 2026-06-14 · 模块: 前端 E2E (Playwright + BDD)
 
 ## 模块 A：在线预约 (Booking)
 
-来源: `features/booking/book-massage.feature`
+来源: `features/booking/booking.feature`
 
 ### TC-BK-01 预约成功并支付成功
 - 前置: 在预约页 `/booking`。
@@ -23,21 +23,21 @@ Date: 2026-06-14 · 模块: 前端 E2E (Playwright + BDD)
   4. 填写客户信息（姓名/邮箱/电话）并提交，捕获 `bookingId` + `clientSecret`。
   5. 伪造并发送已签名的 `payment_intent.succeeded` webhook。
 - 预期: 确认页状态徽章 `data-status=confirmed`；数据库中该预约 `status=confirmed`。
-- 自动化: `Book a massage › Customer books an available slot and payment succeeds`
-- 状态: ❌（提交捕获在首次执行时返回空，疑似顺序/首请求相关，见报告 §4.3）
+- 自动化: `Booking › Customer books an available slot and payment succeeds`
+- 状态: ✅（Run #003）
 
 ### TC-BK-02 支付失败时预约不被确认
 - 前置: 在预约页。
 - 步骤: 同 TC-BK-01 第 1–4 步；随后发送 `payment_intent.payment_failed` webhook。
 - 预期: 数据库中该预约 `status` 不为 `confirmed`。
-- 自动化: `Book a massage › Payment fails and the booking is not confirmed`
+- 自动化: `Booking › Payment fails and the booking is not confirmed`
 - 状态: ✅
 
 ### TC-BK-03 非法签名的 webhook 被拒绝
 - 前置: 在预约页。
 - 步骤: 同 TC-BK-01 第 1–4 步；随后发送签名非法的 webhook。
 - 预期: webhook 接口返回 HTTP 400；数据库中该预约 `status` 不为 `confirmed`。
-- 自动化: `Book a massage › A webhook with an invalid signature is rejected`
+- 自动化: `Booking › A webhook with an invalid signature is rejected`
 - 状态: ✅
 
 ---
@@ -67,14 +67,14 @@ Date: 2026-06-14 · 模块: 前端 E2E (Playwright + BDD)
 - 步骤: 以种子管理员 `admin@massage.com / admin123` 登录，等待登录响应。
 - 预期: 跳转到 `/admin/dashboard`，并可访问 `/admin/bookings`。
 - 自动化: `Admin login › Admin signs in with valid credentials`
-- 状态: ❌（登录后仍停留在 `/admin/login`，疑与 401 拦截器硬跳转或种子凭据相关，见报告 §4.2）
+- 状态: ✅（Run #003；此前失败原因与修复见 run-002 §4.2）
 
 ### TC-AD-02 错误密码登录失败并提示
 - 前置: 在管理员登录页。
 - 步骤: 以 `admin@massage.com` + 错误密码 `wrong-password` 登录。
 - 预期: 显示登录错误提示 `data-testid=admin-login-error`。
 - 自动化: `Admin login › Admin sign-in fails with wrong password`
-- 状态: ❌（应用 `api.js` 的 401 拦截器执行 `window.location.href='/admin/login'` 整页跳转，错误提示被清空，见报告 §4.1）
+- 状态: ✅（Run #003；此前失败原因与修复见 run-002 §4.1）
 
 ---
 
@@ -89,7 +89,7 @@ Date: 2026-06-14 · 模块: 前端 E2E (Playwright + BDD)
   2. 通过管理员 API（`POST /admin/reschedule-requests/{id}/approve`，需管理员令牌）审批通过。
 - 预期: 数据库中该改期申请 `status=approved`。
 - 自动化: `Reschedule a booking › Customer requests a reschedule and admin approves it`
-- 状态: ❌（依赖管理员鉴权，受 TC-AD-01/02 阻塞，见报告 §4.4）
+- 状态: ✅（Run #003）
 
 ---
 
@@ -97,13 +97,13 @@ Date: 2026-06-14 · 模块: 前端 E2E (Playwright + BDD)
 
 | 用例 | 模块 | 自动化 | 状态 |
 |---|---|---|---|
-| TC-BK-01 | 预约 | ✓ | ❌ |
+| TC-BK-01 | 预约 | ✓ | ✅ |
 | TC-BK-02 | 预约 | ✓ | ✅ |
 | TC-BK-03 | 预约 | ✓ | ✅ |
 | TC-OD-01 | 产品下单 | ✓ | ✅ |
-| TC-AD-01 | 管理员登录 | ✓ | ❌ |
-| TC-AD-02 | 管理员登录 | ✓ | ❌ |
-| TC-RS-01 | 改期 | ✓ | ❌ |
+| TC-AD-01 | 管理员登录 | ✓ | ✅ |
+| TC-AD-02 | 管理员登录 | ✓ | ✅ |
+| TC-RS-01 | 改期 | ✓ | ✅ |
 
 ## 设计阶段列出但尚未实现的用例（来自 `test-design.md` §9 待办）
 

@@ -4,7 +4,7 @@ Status: Draft for review · Date: 2026-06-14
 
 ## 1. Background & current state
 
-- App: `bookingsys` — a massage booking system.
+- App: `bookingsys` — a booking system.
   - Frontend: React 19 + Vite, plain JS/JSX, runs on `http://localhost:3000`.
   - Backend: .NET 10 + MySQL 8, runs on `http://localhost:5000/api`. Has `--migrate` and `--seed` commands. Seed creates the admin account (`admin@massage.com` / `admin123`), service types, and business hours.
   - Auth: JWT access + refresh tokens stored in `localStorage`.
@@ -63,7 +63,7 @@ test/
   doc/                       # all design / plan / test-case docs
     test-design.md           # this document
   features/                  # Gherkin .feature files = the test cases
-    booking/book-massage.feature
+    booking/booking.feature
     booking/reschedule.feature
     order/product-order.feature
     admin/login.feature
