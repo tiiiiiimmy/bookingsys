@@ -31,6 +31,18 @@ export class BookingPage {
     await this.page.getByTestId('booking-slot-item').first().click();
   }
 
+  /**
+   * Toggle-select `count` non-overlapping available slots (multi-slot booking in one checkout).
+   * Slots are generated every 30 min but the 60-min service spans two steps, so consecutive
+   * rendered slots overlap; we stride by 2 to pick non-overlapping ones the backend accepts.
+   */
+  async selectFirstSlots(count: number) {
+    const slots = this.page.getByTestId('booking-slot-item');
+    for (let index = 0; index < count; index += 1) {
+      await slots.nth(index * 2).click();
+    }
+  }
+
   /** Step 1 -> Step 2: advance from slot selection to the customer details form. */
   async proceedToDetails() {
     await this.page.getByTestId('booking-next').click();
