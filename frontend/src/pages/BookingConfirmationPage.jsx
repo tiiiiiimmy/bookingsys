@@ -173,9 +173,14 @@ const BookingConfirmationPage = () => {
                 </div>
                 <div className="flex items-center justify-between gap-4 py-3 text-sm">
                   <span className="text-on-surface-variant">{confirmationCopy.labels.paymentStatus}</span>
-                  <PublicStatusChip tone={getToneForStatus(booking.payment_status || 'pending')}>
-                    {t.status.payment[booking.payment_status] || t.status.payment.pending}
-                  </PublicStatusChip>
+                  <span
+                    data-testid="booking-payment-status"
+                    data-payment-status={booking.payment_status || 'pending'}
+                  >
+                    <PublicStatusChip tone={getToneForStatus(booking.payment_status || 'pending')}>
+                      {t.status.payment[booking.payment_status] || t.status.payment.pending}
+                    </PublicStatusChip>
+                  </span>
                 </div>
                 {booking.expires_at && booking.status === 'pending' ? (
                   <div className="border-t border-outline-variant/60 pt-3">
