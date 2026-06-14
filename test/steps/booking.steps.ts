@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import { Given, When, Then } from '../support/fixtures.js';
 import { sendPaymentWebhook, sendUnsignedWebhook, paymentIntentIdFromClientSecret } from '../support/stripe-mock.js';
-import { getBookingByEmail } from '../support/db.js';
+import { getBookingByEmail, getBookingsByEmail } from '../support/db.js';
 import type { BookingPaymentInfo } from '../pages/BookingPage.js';
 
 // Scenario-scoped state (steps run sequentially within a scenario).
@@ -15,6 +15,13 @@ When('I select the first available service and slot', async ({ bookingPage }) =>
   await bookingPage.selectBookableService();
   await bookingPage.goToNextWeek();
   await bookingPage.selectFirstSlot();
+  await bookingPage.proceedToDetails();
+});
+
+When('I select a bookable service and {int} slots', async ({ bookingPage }, count: number) => {
+  await bookingPage.selectBookableService();
+  await bookingPage.goToNextWeek();
+  await bookingPage.selectFirstSlots(count);
   await bookingPage.proceedToDetails();
 });
 
@@ -53,4 +60,16 @@ Then('the booking is confirmed in the database', async ({ customerEmail }) => {
 Then('the booking is not confirmed in the database', async ({ customerEmail }) => {
   const booking = await getBookingByEmail(customerEmail);
   expect(booking?.status).not.toBe('confirmed');
+});
+
+Then('all bookings for the customer are confirmed', async ({ customerEmail }) => {
+  await expect
+    .poll(
+      async () => {
+        const bookings = await getBookingsByEmail(customerEmail);
+        return bookings.length >= 2 && bookings.every((b) => b.status === 'confirmed');
+      },
+      { timeout: 10_000 },
+    )
+    .toBe(true);
 });
