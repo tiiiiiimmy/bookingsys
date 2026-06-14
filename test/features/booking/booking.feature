@@ -54,3 +54,9 @@ Feature: Booking
     Then I see the booking still processing
     When the payment succeeds
     Then I see the booking confirmed
+
+  Scenario: A slot taken by a confirmed booking is not offered
+    Given a confirmed booking already occupies a slot next week
+    And I am on the booking page
+    When I view next week for the bookable service
+    Then the occupied slot is no longer offered
