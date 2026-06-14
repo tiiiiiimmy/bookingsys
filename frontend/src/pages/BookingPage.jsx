@@ -429,7 +429,10 @@ const BookingPage = () => {
 
       <section className="mx-auto max-w-7xl px-6 pb-20 md:px-8">
         {error ? (
-          <div className="mb-6 rounded-[1.5rem] bg-error-container px-5 py-4 text-sm text-on-error-container">
+          <div
+            data-testid="booking-error"
+            className="mb-6 rounded-[1.5rem] bg-error-container px-5 py-4 text-sm text-on-error-container"
+          >
             {error}
           </div>
         ) : null}
@@ -571,6 +574,7 @@ const BookingPage = () => {
                                     key={`${slot.startTime}-${slotIndex}`}
                                     type="button"
                                     data-testid="booking-slot-item"
+                                    data-start={slot.startTime}
                                     className={`rounded-2xl border px-3 py-3 text-sm font-semibold transition-colors ${
                                       selected
                                         ? 'border-primary bg-primary text-on-primary'
