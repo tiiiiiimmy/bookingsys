@@ -4,6 +4,7 @@ import { BookingPage } from '../pages/BookingPage.js';
 import { BookingConfirmationPage } from '../pages/BookingConfirmationPage.js';
 import { AdminLoginPage } from '../pages/AdminLoginPage.js';
 import { AdminBookingsPage } from '../pages/AdminBookingsPage.js';
+import { AdminAvailabilityPage } from '../pages/AdminAvailabilityPage.js';
 import { ManageBookingPage } from '../pages/ManageBookingPage.js';
 import { ProductOrderPage } from '../pages/ProductOrderPage.js';
 import { adminLogin, seedAdminAuthInBrowser } from './api.js';
@@ -13,6 +14,7 @@ type Fixtures = {
   confirmationPage: BookingConfirmationPage;
   adminLoginPage: AdminLoginPage;
   adminBookingsPage: AdminBookingsPage;
+  adminAvailabilityPage: AdminAvailabilityPage;
   manageBookingPage: ManageBookingPage;
   productOrderPage: ProductOrderPage;
   /** Per-scenario unique customer email for data isolation. */
@@ -35,6 +37,7 @@ export const test = base.extend<Fixtures>({
   confirmationPage: async ({ page }, use) => use(new BookingConfirmationPage(page)),
   adminLoginPage: async ({ page }, use) => use(new AdminLoginPage(page)),
   adminBookingsPage: async ({ page }, use) => use(new AdminBookingsPage(page)),
+  adminAvailabilityPage: async ({ page }, use) => use(new AdminAvailabilityPage(page)),
   manageBookingPage: async ({ page }, use) => use(new ManageBookingPage(page)),
   productOrderPage: async ({ page }, use) => use(new ProductOrderPage(page)),
   customerEmail: async ({}, use) => use(`cust+${Date.now()}@test.local`),

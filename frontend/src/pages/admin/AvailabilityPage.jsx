@@ -18,6 +18,8 @@ import {
   getAdminStatusChipClass,
 } from '../../components/admin/adminStyles';
 
+const extractError = (error) => error.response?.data?.error?.message || error.message;
+
 const AvailabilityPage = () => {
   const { t, formatDate, formatTime } = useAdminLanguage();
   const [businessHours, setBusinessHours] = useState([]);
@@ -45,7 +47,7 @@ const AvailabilityPage = () => {
       setBusinessHours(hoursRes.data);
       setBlocks(blocksRes.data);
     } catch (error) {
-      setMessage({ type: 'error', text: t.availability.loadErrorPrefix + error.message });
+      setMessage({ type: 'error', text: t.availability.loadErrorPrefix + extractError(error) });
     } finally {
       setLoading(false);
     }
@@ -62,7 +64,7 @@ const AvailabilityPage = () => {
       setMessage({ type: 'success', text: t.availability.updateHoursSuccess });
       loadData();
     } catch (error) {
-      setMessage({ type: 'error', text: t.availability.updateFailedPrefix + error.message });
+      setMessage({ type: 'error', text: t.availability.updateFailedPrefix + extractError(error) });
     }
   };
 
@@ -77,7 +79,7 @@ const AvailabilityPage = () => {
       setMessage({ type: 'success', text: t.availability.updateTimeSuccess });
       loadData();
     } catch (error) {
-      setMessage({ type: 'error', text: t.availability.updateFailedPrefix + error.message });
+      setMessage({ type: 'error', text: t.availability.updateFailedPrefix + extractError(error) });
     }
   };
 
@@ -96,7 +98,7 @@ const AvailabilityPage = () => {
       setNewBlock({ startTime: '', endTime: '', reason: '' });
       loadData();
     } catch (error) {
-      setMessage({ type: 'error', text: t.availability.createBlockFailedPrefix + error.message });
+      setMessage({ type: 'error', text: t.availability.createBlockFailedPrefix + extractError(error) });
     }
   };
 
@@ -110,7 +112,7 @@ const AvailabilityPage = () => {
       setMessage({ type: 'success', text: t.availability.deleteBlockSuccess });
       loadData();
     } catch (error) {
-      setMessage({ type: 'error', text: t.availability.deleteBlockFailedPrefix + error.message });
+      setMessage({ type: 'error', text: t.availability.deleteBlockFailedPrefix + extractError(error) });
     }
   };
 
@@ -134,7 +136,10 @@ const AvailabilityPage = () => {
           </div>
 
           {message.text ? (
-            <div className={getAdminAlertClass(message.type === 'error' ? 'error' : 'success')}>
+            <div
+              data-testid={message.type === 'error' ? 'availability-error' : 'availability-message'}
+              className={getAdminAlertClass(message.type === 'error' ? 'error' : 'success')}
+            >
               <span>{message.text}</span>
               <button
                 aria-label={t.common.close}
@@ -160,6 +165,8 @@ const AvailabilityPage = () => {
             {businessHours.map((day) => (
               <div
                 key={day.id}
+                data-testid="availability-day-row"
+                data-day={day.dayOfWeek}
                 className="rounded-[1.5rem] border border-outline-variant/40 bg-white px-5 py-4 shadow-[0_10px_24px_rgba(72,46,35,0.05)]"
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -172,6 +179,7 @@ const AvailabilityPage = () => {
 
                   <div className="grid flex-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
                     <input
+                      data-testid={`availability-start-${day.dayOfWeek}`}
                       className={adminInputClass}
                       disabled={!day.isActive}
                       type="time"
@@ -180,6 +188,7 @@ const AvailabilityPage = () => {
                     />
                     <span className="text-center text-on-surface-variant">-</span>
                     <input
+                      data-testid={`availability-end-${day.dayOfWeek}`}
                       className={adminInputClass}
                       disabled={!day.isActive}
                       type="time"
@@ -189,6 +198,7 @@ const AvailabilityPage = () => {
                   </div>
 
                   <button
+                    data-testid={`availability-day-toggle-${day.dayOfWeek}`}
                     className={adminButtonSecondaryClass}
                     type="button"
                     onClick={() => handleToggleDay(day.dayOfWeek, day.isActive)}
@@ -207,7 +217,7 @@ const AvailabilityPage = () => {
               <p className="text-xs uppercase tracking-[0.2em] text-tertiary">{t.availability.blocksTitle}</p>
               <h2 className="mt-2 font-headline text-2xl text-on-surface">{t.availability.blocksTitle}</h2>
             </div>
-            <button className={adminButtonPrimaryClass} type="button" onClick={() => setShowBlockModal(true)}>
+            <button data-testid="availability-block-open" className={adminButtonPrimaryClass} type="button" onClick={() => setShowBlockModal(true)}>
               {t.availability.addBlock}
             </button>
           </div>
@@ -219,6 +229,8 @@ const AvailabilityPage = () => {
               {blocks.map((block) => (
                 <div
                   key={block.id}
+                  data-testid="availability-block-item"
+                  data-block-id={block.id}
                   className="flex flex-col gap-4 rounded-[1.5rem] border border-outline-variant/40 bg-white px-5 py-4 shadow-[0_10px_24px_rgba(72,46,35,0.05)] lg:flex-row lg:items-center lg:justify-between"
                 >
                   <div>
@@ -229,7 +241,7 @@ const AvailabilityPage = () => {
                       <p className="mt-2 text-sm text-on-surface-variant">{block.reason}</p>
                     ) : null}
                   </div>
-                  <button className={adminButtonDangerClass} type="button" onClick={() => handleDeleteBlock(block.id)}>
+                  <button data-testid="availability-block-delete" className={adminButtonDangerClass} type="button" onClick={() => handleDeleteBlock(block.id)}>
                     {t.availability.delete}
                   </button>
                 </div>
@@ -253,6 +265,7 @@ const AvailabilityPage = () => {
               <label className="block text-sm text-on-surface-variant">
                 <span className="mb-2 block font-semibold text-on-surface">{t.availability.modal.startTime}</span>
                 <input
+                  data-testid="availability-block-start"
                   className={adminInputClass}
                   required
                   type="datetime-local"
@@ -263,6 +276,7 @@ const AvailabilityPage = () => {
               <label className="block text-sm text-on-surface-variant">
                 <span className="mb-2 block font-semibold text-on-surface">{t.availability.modal.endTime}</span>
                 <input
+                  data-testid="availability-block-end"
                   className={adminInputClass}
                   required
                   type="datetime-local"
@@ -287,7 +301,7 @@ const AvailabilityPage = () => {
                 >
                   {t.availability.modal.cancel}
                 </button>
-                <button className={adminButtonPrimaryClass} type="submit">
+                <button data-testid="availability-block-create" className={adminButtonPrimaryClass} type="submit">
                   {t.availability.modal.submit}
                 </button>
               </div>

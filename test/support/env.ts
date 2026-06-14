@@ -69,6 +69,8 @@ export function backendProcessEnv(): Record<string, string> {
     ADMIN_PASSWORD: env.admin.password,
     ADMIN_FIRST_NAME: env.admin.firstName,
     ADMIN_LAST_NAME: env.admin.lastName,
+
+    // Email settings for testing
     SMTP_HOST: '',
     SMTP_USER: '', 
     SMTP_PASS: '',

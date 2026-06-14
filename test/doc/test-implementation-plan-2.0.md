@@ -319,7 +319,7 @@ These resolve the exact messages/shapes the assertions need. Each spike reads ba
 - `AdminAvailabilityPage` (NEW): `open()`, `setBusinessDay(day, { open, start, end })`, `createBlock(startIso, endIso)`, `deleteFirstBlock()`, `expectError(message)`.
 - TC-AD-10: toggle a business day open/closed, edit start/end, create a block, delete it → after each, assert the public availability slot API reflects the change (call `GET /availability/slots` via `support/api.ts` or re-open the public booking page) and DB rows updated.
 - TC-AD-11: negatives — invalid day, block `end < start`, delete an already-deleted block → `expectError(...)`; business-hours `start > end` is currently unenforced (Task 0.4) → mark that single case `test.fixme` with a comment until the backend validates it.
-- Commit: `test(e2e): TC-AD-10/11 availability management and negatives`.
+- [x] Commit: `test(e2e): TC-AD-10/11 availability management and negatives`.
 
 ---
 

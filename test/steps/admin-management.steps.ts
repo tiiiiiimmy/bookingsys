@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
-import { Given, When, Then } from '../support/fixtures.js';
+import { After, Given, When, Then } from '../support/fixtures.js';
 import { BOOKABLE_SERVICE_TYPE_ID } from '../support/constants.js';
-import { getAvailableSlots } from '../support/api.js';
+import { adminLogin, apiFetch, deleteAvailabilityBlock, getAvailableSlots } from '../support/api.js';
 import { getBookingTimes, insertConfirmedBooking } from '../support/db.js';
 import { addDays, dateKey, findNextWeekSlot, mondayOf, toSqlDateTime } from '../support/dates.js';
 
@@ -12,6 +12,27 @@ let validRescheduleStart = '';
 let validRescheduleEnd = '';
 let rejectedStart = '';
 let rejectedEnd = '';
+let touchedMondayHours = false;
+let createdBlockId = 0;
+const mondayDate = () => dateKey(addDays(mondayOf(new Date()), 7));
+const mondayOpeningStart = () => `${mondayDate()}T09:00:00`;
+const mondayOpeningEnd = () => `${mondayDate()}T10:00:00`;
+
+After(async () => {
+  const token = await adminLogin();
+  if (createdBlockId) {
+    await deleteAvailabilityBlock(token, createdBlockId).catch(() => undefined);
+    createdBlockId = 0;
+  }
+  if (touchedMondayHours) {
+    await apiFetch('/availability/admin/business-hours/1', {
+      method: 'PUT',
+      token,
+      body: { startTime: '09:00', endTime: '17:00', isActive: true },
+    });
+    touchedMondayHours = false;
+  }
+});
 
 function toDateTimeLocal(iso: string): string {
   return iso.slice(0, 16);
@@ -114,4 +135,65 @@ Then('the admin booking time is unchanged', async () => {
     validRescheduleEnd,
   ]);
   expect([rejectedStart, rejectedEnd]).not.toEqual([validRescheduleStart, validRescheduleEnd]);
+});
+
+When('I open the admin availability page', async ({ adminAvailabilityPage }) => {
+  await adminAvailabilityPage.open();
+});
+
+When('I close Monday business hours', async ({ adminAvailabilityPage }) => {
+  touchedMondayHours = true;
+  await adminAvailabilityPage.setBusinessDay(1, { open: false });
+});
+
+When('I reopen Monday business hours from {string} to {string}', async ({ adminAvailabilityPage }, start: string, end: string) => {
+  touchedMondayHours = true;
+  await adminAvailabilityPage.setBusinessDay(1, { open: true, start, end });
+});
+
+When('I create an availability block for the opening slot', async ({ adminAvailabilityPage }) => {
+  await adminAvailabilityPage.createBlock(mondayOpeningStart(), mondayOpeningEnd());
+  createdBlockId = await adminAvailabilityPage.firstBlockId();
+});
+
+When('I delete the availability block', async ({ adminAvailabilityPage }) => {
+  await adminAvailabilityPage.deleteFirstBlock();
+  createdBlockId = 0;
+});
+
+When('I try to create an invalid availability block', async ({ adminAvailabilityPage }) => {
+  await adminAvailabilityPage.createBlock(mondayOpeningEnd(), mondayOpeningStart());
+});
+
+When('I delete that availability block twice', async ({ adminAvailabilityPage, adminToken }) => {
+  const blockId = await adminAvailabilityPage.firstBlockId();
+  await deleteAvailabilityBlock(adminToken, blockId);
+  createdBlockId = 0;
+  await adminAvailabilityPage.deleteFirstBlock();
+});
+
+Then('Monday public availability has no slots', async () => {
+  await expect.poll(async () => (await getAvailableSlots(mondayDate(), 60)).length).toBe(0);
+});
+
+Then('Monday public availability includes the opening slot', async () => {
+  await expect
+    .poll(async () => {
+      const slots = await getAvailableSlots(mondayDate(), 60);
+      return slots.some((slot) => slot.startTime === mondayOpeningStart());
+    })
+    .toBe(true);
+});
+
+Then('the blocked opening slot is unavailable', async () => {
+  await expect
+    .poll(async () => {
+      const slots = await getAvailableSlots(mondayDate(), 60);
+      return slots.some((slot) => slot.startTime === mondayOpeningStart());
+    })
+    .toBe(false);
+});
+
+Then('I see an availability error containing {string}', async ({ adminAvailabilityPage }, message: string) => {
+  await adminAvailabilityPage.expectError(message);
 });
