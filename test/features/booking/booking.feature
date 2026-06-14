@@ -76,10 +76,13 @@ Feature: Booking
       | phone       |
       | emailFormat |
 
+  # API/contract layer (no browser): availability endpoint validation + slot generation.
+  @api
   Scenario: The availability API rejects a past date
     When I request availability for a past date
     Then the availability request is rejected because the date is in the past
 
+  @api
   Scenario: The availability API rejects a non-30-minute duration
     When I request availability with a 45-minute duration
     Then the availability request is rejected because the duration is invalid
@@ -89,11 +92,13 @@ Feature: Booking
     When I view next week for the bookable service
     Then the closed day next week offers no slots
 
+  @api
   Scenario: Slots are offered at the opening and closing boundaries
     When I request availability for an open day next week
     Then a slot starts at the opening time
     And a slot ends at the closing time
 
+  @api
   Scenario: A blocked period removes its overlapping slot
     Given an admin blocks the first open slot next week
     Then the blocked slot is no longer available

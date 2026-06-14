@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:e2e": "bddgen && playwright test",
+    "test:e2e": "bddgen && playwright test --grep-invert @api",
+    "test:api": "bddgen && playwright test --grep @api",
     "test:smoke": "bddgen && playwright test --grep @smoke",
     "test:regression": "bddgen && playwright test",
     "test:e2e:ui": "bddgen && playwright test --ui",

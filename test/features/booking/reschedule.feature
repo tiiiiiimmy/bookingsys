@@ -57,6 +57,8 @@ Feature: Reschedule a booking
     Then the reschedule request shows as rejected
     And the booking time is unchanged
 
+  # API/contract layer (no browser): admin reschedule-review edge cases driven via the API.
+  @api
   Scenario: Reviewing an already-reviewed request is rejected
     Given a confirmed booking with a pending reschedule request
     When the admin approves the request via the API
@@ -69,12 +71,13 @@ Feature: Reschedule a booking
   # SELECT (no `FOR UPDATE`), so two concurrent approvals of the same pending request
   # both pass the "already reviewed" guard and both commit — exactly-one-wins is only
   # enforced sequentially. Remove @fail once the read takes a row lock.
-  @fail
+  @api @fail
   Scenario: Concurrent reviews of one request let only one win
     Given a confirmed booking with a pending reschedule request
     When two admins approve the request at the same time
     Then exactly one review succeeds
 
+  @api
   Scenario: Approving one request rejects the booking's other pending requests
     Given a confirmed booking with a pending reschedule request
     And the booking has a second pending reschedule request

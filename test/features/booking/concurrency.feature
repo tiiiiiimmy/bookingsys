@@ -1,3 +1,6 @@
+# API/contract layer: these scenarios drive the backend via DB seeding + forged
+# webhooks and assert via the DB/API — no browser. Run with `npm run test:api`.
+@api
 Feature: Booking concurrency and hold expiry
   As the system I want to protect a slot once it is held or paid
   so that two customers cannot end up confirmed on the same time.
