@@ -555,7 +555,12 @@ const BookingPage = () => {
                       const dateKey = formatDateKey(date);
                       const dayData = weekSlots.find((entry) => entry.date === dateKey);
                       return (
-                        <div key={dateKey} className="rounded-[1.5rem] border border-outline-variant/70 bg-surface-container-low p-4">
+                        <div
+                          key={dateKey}
+                          data-testid="booking-day"
+                          data-date={dateKey}
+                          className="rounded-[1.5rem] border border-outline-variant/70 bg-surface-container-low p-4"
+                        >
                           <div className="mb-4 border-b border-outline-variant/60 pb-3">
                             <p className="font-semibold text-on-surface">{formatDate(date, { weekday: 'short' })}</p>
                             <p className="text-sm text-on-surface-variant">{formatDate(date, { month: 'numeric', day: 'numeric' })}</p>
