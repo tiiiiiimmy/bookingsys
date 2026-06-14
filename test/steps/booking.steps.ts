@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import { Given, When, Then } from '../support/fixtures.js';
-import { sendPaymentWebhook, paymentIntentIdFromClientSecret } from '../support/stripe-mock.js';
+import { sendPaymentWebhook, sendUnsignedWebhook, paymentIntentIdFromClientSecret } from '../support/stripe-mock.js';
 import { getBookingByEmail } from '../support/db.js';
 import type { BookingPaymentInfo } from '../pages/BookingPage.js';
 
@@ -31,6 +31,11 @@ When('the payment succeeds', async () => {
 
 When('the payment fails', async () => {
   await sendPaymentWebhook(paymentIntentIdFromClientSecret(payment.clientSecret), 'failed');
+});
+
+When('a webhook with an invalid signature arrives', async () => {
+  const status = await sendUnsignedWebhook(paymentIntentIdFromClientSecret(payment.clientSecret));
+  expect(status).toBe(400);
 });
 
 Then('I see the booking confirmed', async ({ confirmationPage }) => {

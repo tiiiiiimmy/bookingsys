@@ -43,6 +43,14 @@ export async function getBookingByEmail(email: string) {
   );
 }
 
+/** Latest reschedule request for a booking. */
+export async function getRescheduleRequestByBookingId(bookingId: number) {
+  return queryOne<{ id: number; status: string }>(
+    `SELECT id, status FROM booking_reschedule_requests WHERE booking_id = ? ORDER BY id DESC LIMIT 1`,
+    [bookingId],
+  );
+}
+
 /** Manage token for the latest booking of a customer email. */
 export async function getManageToken(email: string) {
   return queryOne<{ manage_token: string }>(
@@ -50,6 +58,19 @@ export async function getManageToken(email: string) {
       WHERE c.email = ? ORDER BY b.id DESC LIMIT 1`,
     [email],
   );
+}
+
+/** Latest product order for a customer email. */
+export async function getProductOrderByEmail(email: string) {
+  return queryOne<{ id: number; status: string }>(
+    `SELECT id, status FROM product_orders WHERE customer_email = ? ORDER BY id DESC LIMIT 1`,
+    [email],
+  );
+}
+
+/** Remove product orders created by a test customer email. */
+export async function cleanupProductOrder(email: string): Promise<void> {
+  await db().query('DELETE FROM product_orders WHERE customer_email = ?', [email]);
 }
 
 /** Remove all data created by a test customer email (cascade-safe order). */
