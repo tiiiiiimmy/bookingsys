@@ -77,7 +77,7 @@ const AdminLayout = () => {
           <div className="mt-8 rounded-[1.5rem] bg-surface-container-low px-4 py-4">
             <p className="text-xs uppercase tracking-[0.2em] text-on-surface-variant">{t.layout.brand}</p>
             <p className="mt-2 text-sm font-semibold text-on-surface">{admin.email}</p>
-            <button className={`${adminButtonSecondaryClass} mt-4 w-full`} onClick={logout} type="button">
+            <button data-testid="admin-logout" className={`${adminButtonSecondaryClass} mt-4 w-full`} onClick={logout} type="button">
               {t.layout.logout}
             </button>
           </div>
