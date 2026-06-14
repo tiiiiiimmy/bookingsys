@@ -172,3 +172,30 @@ test/
 Each run produces a numbered, dated report in `doc/reports/`, indexed in [`doc/test-report.md`](doc/test-report.md).
 Latest **Run #005**: 54 passed / 0 failed / 0 flaky (1 xfail) — booking, reschedule, product orders, admin session/management; Stripe mocked throughout.
 Known gaps: TC-RS-10 (backend concurrency, xfail); TC-AD-11 business-hours `start>end` (backend not validated; not automated).
+
+`playwright.config.ts` emits three reporters: `html` (`playwright-report/`, opened by `test:report`),
+`junit` (`test-results/junit.xml`, consumed by CI), and `list` (console). Traces are retained on failure.
+
+---
+
+## 9. CI (Azure Pipelines)
+
+[`azure-pipelines.yml`](../azure-pipelines.yml) (repo root) runs the suite on the self-hosted `Default` pool.
+Because the harness starts both servers and runs migrate+seed itself (§4–§5), CI does **not** manually
+start/stop the backend or frontend — it only provisions runtimes, ensures the test DB exists, then runs
+the npm scripts.
+
+Stage `quality_gate` → 4 jobs:
+
+| Job | What it does |
+|---|---|
+| `backend_build` | `UseDotNet@2` + `dotnet restore`/`build` (.NET 10) |
+| `frontend_build` | `npm ci` + `npm run build` (Vite) |
+| `api_tests` | `npm run test:api` on DB `bookingsys_test_api` |
+| `e2e_tests` | `npm run test:e2e` on DB `bookingsys_test_e2e` (+ Chromium; HTML report → Azure Blob static site) |
+
+- Each test job uses its **own** `bookingsys_test_*` DB, so the two never share data/slots if the pool runs them in parallel.
+- **JUnit** results (`test-results/junit.xml`) are published via `PublishTestResults@2`; the Playwright **HTML report** is uploaded to the Azure Blob static website and attached as a pipeline artifact.
+- The TC-RS-10 xfail rides in `api_tests` and reports as passed (Playwright counts expected failures as passing), so it does not red the pipeline.
+- **Agent prerequisites**: MySQL 8 reachable + the `mysql` client + `az` CLI (Node and the .NET 10 SDK are provisioned per run).
+- **Required pipeline variables** (mark secrets `*`): `DB_PASSWORD`\*, `AZURE_STORAGE_ACCOUNT`, `AZURE_STORAGE_KEY`\*, `AZURE_STATIC_SITE_URL`. `DB_*` / `ADMIN_*` / `STRIPE_WEBHOOK_SECRET` carry CI defaults.
