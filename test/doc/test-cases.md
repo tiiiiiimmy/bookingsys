@@ -97,18 +97,25 @@ Date: 2026-06-15 · 模块: 前端 E2E (Playwright + BDD)
 ## 覆盖汇总（Run #005，54 个可执行场景）
 
 前文 TC-*-01 为各模块的核心 happy path（含 `@smoke` 标签），其余扩展用例见下方 backlog；
-两者均已自动化。按 feature 文件统计的可执行场景数：
+两者均已自动化。场景按执行层分为两类：
 
-| 模块 | 来源 feature | 场景数 | 状态 |
-|---|---|---|---|
-| 预约 Booking | `booking/booking.feature` | 17 | ✅ |
-| 预约并发/hold 过期 | `booking/concurrency.feature` | 3 | ✅ |
-| 改期 Reschedule | `booking/reschedule.feature` | 11 | ✅（1 个 xfail：TC-RS-10） |
-| 产品下单 Order | `order/product-order.feature` | 11 | ✅ |
-| 管理员登录 Admin | `admin/login.feature` | 2 | ✅ |
-| 管理员会话 Admin | `admin/session.feature` | 5 | ✅ |
-| 管理员后台管理 Admin | `admin/management.feature` | 5 | ✅ |
-| **合计** | | **54** | **53 通过 + 1 xfail** |
+- **浏览器 E2E（44）**——真实浏览器跨 UI→API→DB，`npm run test:e2e`。
+- **API/契约层（10，标 `@api`）**——不开浏览器，DB 播种 + 伪造 webhook / 直连 API 断言，`npm run test:api`。
+  本质是后端集成测试，故从浏览器 E2E 中剥离；`npm run test:regression` 跑全部两层。
+
+| 模块 | 来源 feature | E2E | API(@api) | 状态 |
+|---|---|---|---|---|
+| 预约 Booking | `booking/booking.feature` | 13 | 4 | ✅ |
+| 预约并发/hold 过期 | `booking/concurrency.feature` | 0 | 3 | ✅ |
+| 改期 Reschedule | `booking/reschedule.feature` | 8 | 3 | ✅（1 个 xfail：TC-RS-10） |
+| 产品下单 Order | `order/product-order.feature` | 11 | 0 | ✅ |
+| 管理员登录 Admin | `admin/login.feature` | 2 | 0 | ✅ |
+| 管理员会话 Admin | `admin/session.feature` | 5 | 0 | ✅ |
+| 管理员后台管理 Admin | `admin/management.feature` | 5 | 0 | ✅ |
+| **合计** | | **44** | **10** | **53 通过 + 1 xfail** |
+
+> `@api` 场景：并发与 hold 过期（TC-BK-08/09/10）、改期复核边界（TC-RS-09/10/11）、
+> 可用性端点校验与边界（"availability API rejects…"、"opening/closing boundaries"、"blocked period…"）。
 
 ## 扩展用例 Backlog（实现状态）
 

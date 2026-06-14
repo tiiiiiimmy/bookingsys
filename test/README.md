@@ -18,8 +18,8 @@
 | 产品下单 Order | 逐商品支付成功、未知商品、支付失败/未发 webhook 保持 pending、表单校验 | 确认页徽章 + `product_orders.status` |
 | 管理员 Admin | 登录成功/失败、会话（路由守卫/刷新/失效/双标签登出）、后台管理（筛选/详情/手动改期/可用性管理与负例） | 跳转/重定向 + 列表/详情字段 + 营业时间/封锁 → 公开可用性 |
 
-当前已自动化 **54 个场景**（最新运行 Run #005：53 通过 + 1 个 xfail）。完整用例清单、实现状态与已知缺口见
-[`doc/test-cases.md`](doc/test-cases.md)，测试设计见 [`doc/test-design.md`](doc/test-design.md)。
+当前已自动化 **54 个场景**：其中 **44 个浏览器 E2E**（`test:e2e`）+ **10 个 API/契约层**（`test:api`，不开浏览器）。
+完整用例清单、实现状态与已知缺口见 [`doc/test-cases.md`](doc/test-cases.md)，测试设计见 [`doc/test-design.md`](doc/test-design.md)。
 
 ---
 
@@ -66,14 +66,18 @@ support/*.ts            基础设施：环境、数据库、Stripe mock、后端
 ---
 
 ### 测试分层 (Tagging)
-用 Gherkin 标签分两档，不另设第三档：
+用 Gherkin 标签把场景分到不同执行档：
 
-- **`@smoke`** —— 每模块挑一条核心 happy path（预约支付成功 / 产品下单成功 / 管理员登录成功），
-  跑得最快最稳，用于改动后快速验证与合并门禁。`npm run test:smoke`（即 `playwright test --grep @smoke`）。
-- **回归 (regression)** —— 默认即全量，不带过滤就是回归。`npm run test:e2e` / `npm run test:regression`。
+- **`@api`** —— **不打开浏览器**的契约/集成场景：通过 DB 播种 + 伪造 webhook 或直连后端 API 断言
+  （并发与 hold 过期、改期复核边界 TC-RS-09/10/11、可用性端点校验与边界）。它们更快、更稳，
+  但本质是后端集成测试，因此从浏览器 E2E 中剥离。`npm run test:api`（`playwright test --grep @api`）。
+- **`@smoke`** —— 每模块一条核心 happy path（预约支付成功 / 产品下单成功 / 管理员登录成功 /
+  管理员会话直达），最快最稳，用于改动后快速验证与合并门禁。`npm run test:smoke`。
+- **浏览器 E2E (default)** —— 默认即真实浏览器场景：`npm run test:e2e`（`--grep-invert @api`，排除契约层）。
+- **全量回归 (regression)** —— 两层全跑：`npm run test:regression`（不过滤）。
 
-需要"验证某个具体功能"时用 `--grep` 按标题/标签临时筛选即可，不必固化成单独一类。
-负例/边界类（表单校验、可用性负例等）**不进 @smoke**。
+需要"验证某个具体功能"时用 `--grep` 按标题/标签临时筛选即可。
+`@fail` 标记预期失败（xfail，记录后端缺陷，如 TC-RS-10）；负例/边界类**不进 @smoke**。
 
 ---
 
@@ -133,8 +137,10 @@ cp .env.test.example .env.test
 
 # 3. 确保 :5001 没有开发后端占用；MySQL 已启动
 
-# 4. 运行全部 E2E（先 bddgen 生成 spec，再跑 Playwright）
-npm run test:e2e
+# 4. 运行测试（先 bddgen 生成 spec，再跑 Playwright）
+npm run test:regression   # 全量：浏览器 E2E + API 契约层（54）
+npm run test:e2e          # 仅浏览器 E2E（44）
+npm run test:api          # 仅 API/契约层（10，最快）
 
 # 可选：UI 模式调试 / 查看上次 HTML 报告
 npm run test:e2e:ui
@@ -142,13 +148,18 @@ npm run test:report
 ```
 
 ### npm scripts
-| 命令 | 作用 |
-|---|---|
-| `npm run test:e2e` | `bddgen` 生成 spec → `playwright test` 跑全部场景 |
-| `npm run test:smoke` | 仅跑 `@smoke` 标签的核心场景（快速验证 / 门禁） |
-| `npm run test:regression` | 全量回归（等同 `test:e2e`） |
-| `npm run test:e2e:ui` | Playwright UI 模式（可视化调试） |
-| `npm run test:report` | 打开最近一次 Playwright HTML 报告 |
+| 命令 | 作用 | 场景数 |
+|---|---|---|
+| `npm run test:e2e` | **浏览器 E2E**：真实浏览器跨 UI→API→DB（排除 `@api`） | 44 |
+| `npm run test:api` | **API/契约层**：纯后端/DB 断言，无浏览器（仅 `@api`） | 10 |
+| `npm run test:smoke` | 仅跑 `@smoke` 核心 happy path（快速验证 / 门禁） | 4 |
+| `npm run test:regression` | **全量回归**：E2E + API 全部场景（CI 门禁） | 54 |
+| `npm run test:e2e:ui` | Playwright UI 模式（可视化调试） | — |
+| `npm run test:report` | 打开最近一次 Playwright HTML 报告 | — |
+
+> 分层依据：`@api` 标签标记**不打开浏览器**、仅通过 DB 播种 + 伪造 webhook / 直连 API 断言的契约类场景
+> （并发与 hold 过期、改期复核边界、可用性端点校验/边界）。它们逻辑有价值但本质是后端集成测试，
+> 故从 `test:e2e` 中剥离；`test:regression` 仍覆盖两层。
 
 ---
 

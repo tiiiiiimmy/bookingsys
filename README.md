@@ -236,7 +236,9 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 打通到真实运行的 .NET 后端、并直连 MySQL 测试库做数据断言；Stripe 全程 mock（后端
 `STRIPE_FAKE_PAYMENTS` + 伪造签名 webhook，测试浏览器拦截 `stripe.com`），不调用任何外部服务。
 
-- **覆盖**：当前 **54 个场景**，断言贯穿 UI → API → DB 三层，涵盖
+- **分层**：**44 个浏览器 E2E**（`test:e2e`，真实浏览器跨 UI→API→DB）+ **10 个 API/契约层**
+  （`test:api`，不开浏览器，纯 DB 播种 + 伪造 webhook / 直连 API 断言）；`test:regression` 跑全部 54 个。
+- **覆盖**：断言贯穿 UI → API → DB 三层，涵盖
   - 预约（支付成功/失败、非法签名、多时段、确认页轮询、时段冲突、并发与 hold 过期、表单校验、可用性边界）
   - 改期（manage 页状态、冲突申请、管理员 UI 批准/拒绝、复核边界）
   - 产品下单（逐商品成功、未知商品、未支付保持 pending、表单校验）
@@ -246,8 +248,10 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
   cd test
   npm install && npx playwright install chromium
   cp .env.test.example .env.test   # 按本机填写，注意 API_URL 端口为 5001
-  npm run test:e2e                 # 全量回归（bddgen → playwright test）
-  npm run test:smoke               # 仅核心 @smoke 场景
+  npm run test:regression          # 全量：E2E + API（54）
+  npm run test:e2e                 # 仅浏览器 E2E（44）
+  npm run test:api                 # 仅 API/契约层（10，最快）
+  npm run test:smoke               # 仅核心 @smoke 场景（4）
   ```
   > 运行前需停止占用后端端口的开发后端（测试以测试库 `bookingsys_test` 启动自有后端）。
 - **文档**：套件说明见 [`test/README.md`](test/README.md)，用例清单与实现状态见
