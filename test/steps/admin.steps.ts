@@ -1,12 +1,13 @@
 import { expect } from '@playwright/test';
 import { Given, When, Then } from '../support/fixtures.js';
+import { env } from '../support/env.js';
 
 Given('I am on the admin login page', async ({ adminLoginPage }) => {
   await adminLoginPage.open();
 });
 
 When('I sign in as the seeded admin', async ({ adminLoginPage, page }) => {
-  await adminLoginPage.login('admin@massage.com', 'admin123');
+  await adminLoginPage.login(env.admin.email, env.admin.password);
   // On success the app stores the token and navigates to the dashboard; wait
   // for that before visiting a protected route.
   await page.waitForURL(/\/admin\/dashboard/);

@@ -1,7 +1,7 @@
 import { env } from './env.js';
 
 /** Authenticate as an admin via the API and return the access token. */
-export async function adminLogin(email = 'admin@massage.com', password = 'admin123'): Promise<string> {
+export async function adminLogin(email = env.admin.email, password = env.admin.password): Promise<string> {
   const res = await fetch(`${env.apiUrl}/admin/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

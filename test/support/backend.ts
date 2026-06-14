@@ -9,7 +9,7 @@ const backendDir = path.resolve(dir, '..', env.backendDir);
 /** Run a one-shot `dotnet run -- <arg>` against the test DB and wait for exit. */
 export function runBackendCommand(arg: '--migrate' | '--seed'): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn('dotnet', ['run', '--project', 'BookingSystem.Api.csproj', '--', arg], {
+    const child = spawn(env.dotnet.cli, ['run', '--project', 'BookingSystem.Api.csproj', '--', arg], {
       cwd: backendDir,
       env: { ...process.env, ...backendProcessEnv() },
       stdio: 'inherit',

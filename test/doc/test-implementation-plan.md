@@ -221,7 +221,7 @@ git commit -m "feat(test): typed env access with test-db safety guard"
 
 ```ts
 import mysql from 'mysql2/promise';
-import { env } from './env.js';
+import { env, backendProcessEnv } from './env.js';
 
 let pool: mysql.Pool | undefined;
 
@@ -388,9 +388,9 @@ const backendDir = path.resolve(dir, '..', env.backendDir);
 /** Run a one-shot `dotnet run -- <arg>` against the test DB and wait for exit. */
 export function runBackendCommand(arg: '--migrate' | '--seed'): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn('dotnet', ['run', '--project', 'BookingSystem.Api.csproj', '--', arg], {
+    const child = spawn(env.dotnet.cli, ['run', '--project', 'BookingSystem.Api.csproj', '--', arg], {
       cwd: backendDir,
-      env: { ...process.env, DB_NAME: env.db.database },
+      env: { ...process.env, ...backendProcessEnv() },
       stdio: 'inherit',
     });
     child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`${arg} exited ${code}`))));
@@ -451,7 +451,9 @@ git commit -m "feat(test): migrate+seed app_test and readiness checks in global 
 ```ts
 import { defineConfig, devices } from '@playwright/test';
 import { defineBddConfig } from 'playwright-bdd';
-import { env } from './support/env.js';
+import { env, backendProcessEnv } from './support/env.js';
+
+const shellQuote = (value: string) => `'${value.replace(/'/g, "'\\''")}'`;
 
 const testDir = defineBddConfig({
   features: ['features/**/*.feature'],
@@ -471,9 +473,9 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
-      command: 'dotnet run --project BookingSystem.Api.csproj',
+      command: `${shellQuote(env.dotnet.cli)} run --project BookingSystem.Api.csproj`,
       cwd: env.backendDir,
-      env: { DB_NAME: env.db.database },
+      env: backendProcessEnv(),
       url: `${env.apiUrl}/bookings/service-types`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

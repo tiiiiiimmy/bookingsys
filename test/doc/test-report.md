@@ -1,66 +1,20 @@
-# E2E Test Report — Frontend (Playwright + BDD)
+# E2E 测试报告索引 (Test Report Index)
 
-Date: 2026-06-14 · Branch: `test/e2e-bdd-playwright`
+每次运行生成一份带**运行编号 + 时间**的报告，存放于 `test/doc/reports/`。最新在最上方。
 
-## 1. Summary
+| 运行 | 时间 | 结果 | 报告 |
+|---|---|---|---|
+| #002 | 2026-06-14 14:03–14:04 | ✅ 7 通过 / 0 失败 | [run-002-2026-06-14.md](reports/run-002-2026-06-14.md) |
+| #001 | 2026-06-14（修复前基线） | 3 通过 / 4 失败 | [run-001-2026-06-14.md](reports/run-001-2026-06-14.md) |
 
-| | Count |
-|---|---|
-| Total scenarios | 7 |
-| ✅ Passed | 3 |
-| ❌ Failed | 4 |
+## 当前状态
 
-The harness is fully working: Playwright + `playwright-bdd` (Gherkin), TypeScript, a real .NET backend on an isolated `bookingsys_test` DB, **fully-mocked Stripe** (backend `STRIPE_FAKE_PAYMENTS` + forged signed webhook), `mysql2` DB-state assertions, and per-scenario data cleanup. Three scenarios pass end-to-end across **UI + API + DB**, proving the whole pipeline. Four fail; root causes are recorded below, split into **app findings** and **test-harness items**.
+最新运行 (#002)：**全部 7 个场景通过**，覆盖预约、改期、产品下单、管理员登录，断言贯穿 UI + API + DB；Stripe 全程 mock（后端 `STRIPE_FAKE_PAYMENTS` + 伪造签名 webhook），不调用真实外部服务。
 
-## 2. Environment
+## 运行方式
 
-- Frontend: Vite dev server on `:3000` (reused).
-- Backend: launched by Playwright on `:5001` with injected env — `DB_NAME=bookingsys_test`, `STRIPE_FAKE_PAYMENTS=true`, shared `STRIPE_WEBHOOK_SECRET`.
-- DB: `bookingsys_test` (MySQL 8), migrated + seeded once in global setup (admin, 3 service types, business hours Mon–Thu 09:00–17:00).
-- Execution: serial (`workers: 1`) — scenarios share the DB and compete for slots.
-- Run: `cd test && npm run test:e2e`.
+```bash
+cd test && npm run test:e2e
+```
 
-## 3. Results
-
-| Scenario | Result | Verifies |
-|---|---|---|
-| Product order — pay succeeds → order paid | ✅ | UI + DB (`product_orders.status='paid'`) |
-| Booking — payment fails → not confirmed | ✅ | DB (booking not `confirmed`) |
-| Booking — invalid webhook signature rejected | ✅ | webhook 400 + DB unchanged |
-| Booking — pay succeeds → confirmed | ❌ | (fails at submit capture) |
-| Admin login — valid credentials | ❌ | (returns to `/admin/login`) |
-| Admin login — wrong password → error | ❌ | (error banner never shown) |
-| Reschedule — request + admin approval | ❌ | (depends on admin auth) |
-
-## 4. Failure analysis
-
-### 4.1 Admin login, wrong password — **APP FINDING**
-Expected: an inline error (`data-testid="admin-login-error"`) on a failed login.
-Observed: the page hard-navigates back to `/admin/login`; the error element never renders.
-Cause: the axios response interceptor in `frontend/src/services/api.js` handles **any** `401` by attempting a token refresh and, on failure, doing `window.location.href = '/admin/login'` — a full page reload that wipes the React error state. A wrong-password login returns `401`, so the interceptor reloads the page before the error banner can show.
-Implication: login errors are never surfaced to the user; the form just reloads. Either the login `401` should be exempt from the global redirect (show the error instead), or the test should assert "stays on login" rather than an error banner.
-
-### 4.2 Admin login, valid credentials — **NEEDS INVESTIGATION**
-Expected: redirect to `/admin/dashboard` after a successful login.
-Observed: the app ends back on `/admin/login` (the post-login `waitForURL(/admin\/dashboard/)` times out).
-Likely related to 4.1 — a `401` somewhere in the login→dashboard sequence triggers the interceptor's hard redirect — or the seeded admin credentials are not accepted against `bookingsys_test`. Debugging was paused; verifying the login endpoint directly (`POST /api/admin/auth/login` with `admin@massage.com` / `admin123`) is the next step.
-
-### 4.3 Booking — pay succeeds → confirmed — **NEEDS INVESTIGATION (likely flaky/order-dependent)**
-Expected: `POST /bookings` returns `{ data: { bookingId, clientSecret } }`.
-Observed: an assertion in `submitAndCapturePayment` (`response.ok()` / `clientSecret` / `bookingId` truthy) failed on this scenario, while the **identical** submit in the payment-failure and webhook-exception scenarios passed. This scenario runs first in the file, suggesting a first-request / order-dependent issue rather than a logic bug. Capture the `POST /bookings` status+body on the first booking of a run to confirm.
-
-### 4.4 Reschedule — **BLOCKED BY ADMIN AUTH**
-The scenario creates a confirmed booking (works), submits a reschedule via the manage page, then approves it through `POST /admin/reschedule-requests/{id}/approve` using an admin token from `adminLogin()`. It shares the admin-auth issue (4.1/4.2); resolve those first, then re-evaluate.
-
-## 5. What is proven to work
-
-- Backend fake-payments mode (no real Stripe) + forged signed webhook → deterministic success/failure/exception.
-- Isolated test DB with migrate/seed and per-scenario cleanup; safety guard refuses non-`*test*` databases.
-- DB-state assertions via `mysql2` (booking status, product-order status).
-- The full customer **product-order** journey and the booking **negative paths** (payment failure, invalid webhook) pass at UI + API + DB.
-
-## 6. Recommended next steps
-
-1. Decide the desired behavior for login `401` (4.1): exempt `/admin/auth/login` from the global redirect and surface the error. This unblocks both admin-login scenarios and the reschedule approval.
-2. Confirm the seeded admin credentials against `bookingsys_test` (4.2).
-3. Instrument the first `POST /bookings` of a run to confirm the booking-success flakiness (4.3).
+> 运行前需停止占用 `:5001` 的开发后端（测试会用测试库 `bookingsys_test` 启动自己的后端），前端开发服务器 `:3000` 可复用。

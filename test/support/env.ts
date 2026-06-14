@@ -26,6 +26,16 @@ export const env = {
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY ?? '',
     webhookSecret: required('STRIPE_WEBHOOK_SECRET'),
   },
+  admin: {
+    email: process.env.ADMIN_EMAIL ?? 'admin@massage.com',
+    password: process.env.ADMIN_PASSWORD ?? 'admin123',
+    firstName: process.env.ADMIN_FIRST_NAME ?? 'Admin',
+    lastName: process.env.ADMIN_LAST_NAME ?? 'User',
+  },
+  dotnet: {
+    cli: process.env.DOTNET_CLI ?? '/usr/local/share/dotnet/dotnet',
+    root: process.env.DOTNET_ROOT ?? '/usr/local/share/dotnet',
+  },
   backendDir: process.env.BACKEND_DIR ?? '../backend',
 };
 
@@ -40,7 +50,11 @@ if (!/test/i.test(env.db.database)) {
  * override backend/.env without editing it.
  */
 export function backendProcessEnv(): Record<string, string> {
+  const existingPath = process.env.PATH ?? '';
+
   return {
+    PATH: `${env.dotnet.root}:${existingPath}`,
+    DOTNET_ROOT: env.dotnet.root,
     // Backend listens on the port from API_URL.
     PORT: new URL(env.apiUrl).port || '5001',
     DB_HOST: env.db.host,
@@ -51,6 +65,10 @@ export function backendProcessEnv(): Record<string, string> {
     STRIPE_SECRET_KEY: env.stripe.secretKey,
     STRIPE_PUBLISHABLE_KEY: env.stripe.publishableKey,
     STRIPE_WEBHOOK_SECRET: env.stripe.webhookSecret,
+    ADMIN_EMAIL: env.admin.email,
+    ADMIN_PASSWORD: env.admin.password,
+    ADMIN_FIRST_NAME: env.admin.firstName,
+    ADMIN_LAST_NAME: env.admin.lastName,
     // Local mock: backend returns synthetic payment intents, no real Stripe API.
     STRIPE_FAKE_PAYMENTS: 'true',
   };

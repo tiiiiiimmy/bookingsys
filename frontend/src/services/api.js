@@ -7,6 +7,10 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+const isAuthEndpoint = (url = '') => {
+  return url.includes('/admin/auth/login') || url.includes('/admin/auth/refresh');
+};
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
@@ -20,7 +24,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && originalRequest && !isAuthEndpoint(originalRequest.url) && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
         const refreshToken = localStorage.getItem('refreshToken');

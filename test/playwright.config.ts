@@ -9,6 +9,8 @@ const noProxy = [process.env.NO_PROXY, 'localhost', '127.0.0.1', '::1'].filter(B
 process.env.NO_PROXY = noProxy;
 process.env.no_proxy = noProxy;
 
+const shellQuote = (value: string) => `'${value.replace(/'/g, "'\\''")}'`;
+
 const testDir = defineBddConfig({
   features: ['features/**/*.feature'],
   steps: ['steps/**/*.ts', 'support/fixtures.ts'],
@@ -31,7 +33,7 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
-      command: 'dotnet run --project BookingSystem.Api.csproj',
+      command: `${shellQuote(env.dotnet.cli)} run --project BookingSystem.Api.csproj`,
       cwd: env.backendDir,
       env: backendProcessEnv(),
       // DB-independent readiness probe: the webServer is started before
