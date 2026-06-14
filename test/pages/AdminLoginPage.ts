@@ -1,10 +1,9 @@
-import { Page, Response } from '@playwright/test';
+import { Response } from '@playwright/test';
+import { BasePage } from './BasePage.js';
 
-export class AdminLoginPage {
-  constructor(private page: Page) {}
-
+export class AdminLoginPage extends BasePage {
   async open() {
-    await this.page.goto('/admin/login');
+    await this.goto('/admin/login');
   }
 
   /** Fills credentials, submits, and waits for the auth request to complete. */
