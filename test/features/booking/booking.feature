@@ -60,3 +60,26 @@ Feature: Booking
     And I am on the booking page
     When I view next week for the bookable service
     Then the occupied slot is no longer offered
+
+  Scenario Outline: Booking form rejects invalid customer details
+    Given I am on the booking page
+    When I select the first available service and slot
+    And I enter customer details with an invalid "<field>"
+    And I submit the booking form expecting a client-side error
+    Then no booking is created for the customer
+
+    Examples:
+      | field       |
+      | firstName   |
+      | lastName    |
+      | email       |
+      | phone       |
+      | emailFormat |
+
+  Scenario: The availability API rejects a past date
+    When I request availability for a past date
+    Then the availability request is rejected because the date is in the past
+
+  Scenario: The availability API rejects a non-30-minute duration
+    When I request availability with a 45-minute duration
+    Then the availability request is rejected because the duration is invalid
