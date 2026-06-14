@@ -12,7 +12,9 @@ import {
   insertPendingReschedule,
   setBookingStatus,
 } from '../support/db.js';
+import { BOOKABLE_SERVICE_TYPE_ID } from '../support/constants.js';
 import { findNextWeekSlot, nextWeekOpenDate, toSqlDateTime } from '../support/dates.js';
+import { seedConfirmedBookingNextWeek } from '../support/seed.js';
 import { ManageBookingPage } from '../pages/ManageBookingPage.js';
 import {
   adminLogin,
@@ -93,13 +95,7 @@ Then('the manage page shows a load error and no reschedule form', async ({ manag
 });
 
 Given('a cancelled booking exists with a manage token', async ({ customerEmail }) => {
-  const slot = await findNextWeekSlot();
-  const seeded = await insertConfirmedBooking({
-    email: customerEmail,
-    startTime: toSqlDateTime(slot.startTime),
-    endTime: toSqlDateTime(slot.endTime),
-    serviceTypeId: 12,
-  });
+  const seeded = await seedConfirmedBookingNextWeek(customerEmail);
   bookingId = seeded.bookingId;
   await setBookingStatus(bookingId, 'cancelled');
 });
@@ -129,7 +125,7 @@ When('another booking takes that slot before submission', async ({ customerEmail
     email: customerEmail,
     startTime: toSqlDateTime(pickedSlot.startTime),
     endTime: toSqlDateTime(pickedSlot.endTime),
-    serviceTypeId: 12,
+    serviceTypeId: BOOKABLE_SERVICE_TYPE_ID,
   });
 });
 
@@ -194,15 +190,9 @@ let reviewResponse: Response;
 let concurrentResponses: Response[];
 
 Given('a confirmed booking with a pending reschedule request', async ({ customerEmail }) => {
-  const slot = await findNextWeekSlot();
-  const booking = await insertConfirmedBooking({
-    email: customerEmail,
-    startTime: toSqlDateTime(slot.startTime),
-    endTime: toSqlDateTime(slot.endTime),
-    serviceTypeId: 12,
-  });
-  bookingId = booking.bookingId;
-  // The booking now occupies `slot`, so the next free slot is a valid reschedule target.
+  const seeded = await seedConfirmedBookingNextWeek(customerEmail);
+  bookingId = seeded.bookingId;
+  // The booking now occupies its slot, so the next free slot is a valid reschedule target.
   const target = await findNextWeekSlot();
   requestId = await insertPendingReschedule(bookingId, toSqlDateTime(target.startTime), toSqlDateTime(target.endTime));
 });

@@ -6,7 +6,6 @@ import {
   getBookingByEmail,
   getBookingsByEmail,
   getBookingStatusReason,
-  insertConfirmedBooking,
   insertPendingBooking,
 } from '../support/db.js';
 import {
@@ -18,7 +17,9 @@ import {
   getSlotsResponse,
   type AvailableSlot,
 } from '../support/api.js';
+import { BOOKABLE_SERVICE_TYPE_ID } from '../support/constants.js';
 import { addDays, dateKey, findNextWeekSlot, mondayOf, toSqlDateTime } from '../support/dates.js';
+import { seedConfirmedBookingNextWeek, seedPendingBookingNextWeek } from '../support/seed.js';
 import type { BookingPaymentInfo } from '../pages/BookingPage.js';
 
 // Scenario-scoped state (steps run sequentially within a scenario).
@@ -114,14 +115,8 @@ Then('the booking is not confirmed in the database', async ({ customerEmail }) =
 });
 
 Given('a confirmed booking already occupies a slot next week', async ({ customerEmail }) => {
-  const slot = await findNextWeekSlot();
+  const { slot } = await seedConfirmedBookingNextWeek(customerEmail);
   occupiedSlotStart = slot.startTime;
-  await insertConfirmedBooking({
-    email: customerEmail,
-    startTime: toSqlDateTime(slot.startTime),
-    endTime: toSqlDateTime(slot.endTime),
-    serviceTypeId: 12,
-  });
 });
 
 When('I view next week for the bookable service', async ({ bookingPage }) => {
@@ -199,16 +194,10 @@ Then('the blocked slot is no longer available', async () => {
 // --- Concurrency & hold expiry (TC-BK-08/09/10) ---
 
 Given('customer A holds a slot next week without paying', async ({ customerEmail }) => {
-  concurrencySlot = await findNextWeekSlot();
   piA = `pi_hold_${Date.now()}`;
-  const a = await insertPendingBooking({
-    email: customerEmail,
-    startTime: toSqlDateTime(concurrencySlot.startTime),
-    endTime: toSqlDateTime(concurrencySlot.endTime),
-    serviceTypeId: 12,
-    paymentIntentId: piA,
-  });
-  bookingAId = a.bookingId;
+  const seeded = await seedPendingBookingNextWeek(customerEmail, piA);
+  bookingAId = seeded.bookingId;
+  concurrencySlot = seeded.slot;
 });
 
 When('customer B attempts to book the same slot', async ({ customerEmail }) => {
@@ -227,16 +216,10 @@ Then('customer B is rejected with a slot conflict', () => {
 });
 
 Given("customer A has paid and confirmed a slot next week", async ({ customerEmail }) => {
-  concurrencySlot = await findNextWeekSlot();
   piA = `pi_a_${Date.now()}`;
-  const a = await insertPendingBooking({
-    email: customerEmail,
-    startTime: toSqlDateTime(concurrencySlot.startTime),
-    endTime: toSqlDateTime(concurrencySlot.endTime),
-    serviceTypeId: 12,
-    paymentIntentId: piA,
-  });
-  bookingAId = a.bookingId;
+  const seeded = await seedPendingBookingNextWeek(customerEmail, piA);
+  bookingAId = seeded.bookingId;
+  concurrencySlot = seeded.slot;
   // Confirm A while it is the only hold on the slot, so its succeeded webhook finds no conflict.
   await sendPaymentWebhook(piA, 'succeeded');
   await expect
@@ -250,7 +233,7 @@ When('customer B pays for the same slot', async ({ customerEmail }) => {
     email: customerEmail,
     startTime: toSqlDateTime(concurrencySlot.startTime),
     endTime: toSqlDateTime(concurrencySlot.endTime),
-    serviceTypeId: 12,
+    serviceTypeId: BOOKABLE_SERVICE_TYPE_ID,
     paymentIntentId: piB,
   });
   bookingBId = b.bookingId;
@@ -271,16 +254,9 @@ Then("customer B's booking is cancelled for review", async () => {
 });
 
 Given('a booking whose hold has expired', async ({ customerEmail }) => {
-  concurrencySlot = await findNextWeekSlot();
   piA = `pi_exp_${Date.now()}`;
-  const a = await insertPendingBooking({
-    email: customerEmail,
-    startTime: toSqlDateTime(concurrencySlot.startTime),
-    endTime: toSqlDateTime(concurrencySlot.endTime),
-    serviceTypeId: 12,
-    paymentIntentId: piA,
-  });
-  bookingAId = a.bookingId;
+  const seeded = await seedPendingBookingNextWeek(customerEmail, piA);
+  bookingAId = seeded.bookingId;
   await expireBookingHold(bookingAId);
 });
 
