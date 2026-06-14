@@ -21,9 +21,24 @@ export class ManageBookingPage {
 
   /** Fill the date, pick the first slot, and click submit (shared by success/error flows). */
   private async fillDateAndSubmit(isoDate: string) {
-    await this.page.getByTestId('manage-reschedule-date').fill(isoDate);
-    await this.page.getByTestId('manage-reschedule-slot').first().click();
+    await this.selectDateAndPickFirstSlot(isoDate);
     await this.page.getByTestId('manage-reschedule-submit').click();
+  }
+
+  /** Fill the date, pick the first available slot, and return its ISO start/end times. */
+  async selectDateAndPickFirstSlot(isoDate: string): Promise<{ startTime: string; endTime: string }> {
+    await this.page.getByTestId('manage-reschedule-date').fill(isoDate);
+    const slot = this.page.getByTestId('manage-reschedule-slot').first();
+    await slot.click();
+    const startTime = await slot.getAttribute('data-start');
+    const endTime = await slot.getAttribute('data-end');
+    return { startTime: startTime!, endTime: endTime! };
+  }
+
+  /** Submit the (already selected) reschedule request and assert the error banner matches. */
+  async submitExpectingError(message: RegExp) {
+    await this.page.getByTestId('manage-reschedule-submit').click();
+    await expect(this.page.getByTestId('manage-reschedule-error')).toContainText(message, { timeout: 15_000 });
   }
 
   /** The booking summary card is shown (page loaded for a valid token). */

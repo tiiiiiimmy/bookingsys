@@ -242,6 +242,8 @@ const ManageBookingPage = () => {
                               key={`${slot.startTime}-${index}`}
                               type="button"
                               data-testid="manage-reschedule-slot"
+                              data-start={slot.startTime}
+                              data-end={slot.endTime}
                               className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors ${
                                 selectedSlot?.startTime === slot.startTime
                                   ? 'border-primary bg-primary text-on-primary'

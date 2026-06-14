@@ -100,3 +100,37 @@ Given('a cancelled booking exists with a manage token', async ({ customerEmail }
 Then('the reschedule form is disabled', async ({ manageBookingPage }) => {
   await manageBookingPage.expectRescheduleDisabled();
 });
+
+// --- TC-RS-05/06: reschedule request conflicts ---
+
+// The slot the customer selected in the UI before a conflict is seeded (TC-RS-06).
+let pickedSlot: { startTime: string; endTime: string };
+
+When('the customer submits a second reschedule request for next week', async ({ manageBookingPage }) => {
+  await manageBookingPage.requestRescheduleExpectingError(
+    nextWeekOpenDate(),
+    /already.*pending reschedule request/i,
+  );
+});
+
+When('the customer picks the first available slot next week', async ({ manageBookingPage }) => {
+  pickedSlot = await manageBookingPage.selectDateAndPickFirstSlot(nextWeekOpenDate());
+});
+
+When('another booking takes that slot before submission', async ({ customerEmail }) => {
+  await insertConfirmedBooking({
+    email: customerEmail,
+    startTime: toSqlDateTime(pickedSlot.startTime),
+    endTime: toSqlDateTime(pickedSlot.endTime),
+    serviceTypeId: 12,
+  });
+});
+
+When('the customer submits the reschedule request expecting a conflict', async ({ manageBookingPage }) => {
+  await manageBookingPage.submitExpectingError(/no longer available|conflicts with existing booking/i);
+});
+
+Then('the booking has no pending reschedule request', async () => {
+  const pending = (await getRescheduleRequestsByBookingId(bookingId)).filter((r) => r.status === 'pending');
+  expect(pending).toHaveLength(0);
+});
