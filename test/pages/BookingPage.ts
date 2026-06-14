@@ -48,6 +48,24 @@ export class BookingPage {
     await this.page.getByTestId('booking-next').click();
   }
 
+  /**
+   * Assert a specific slot (identified by its ISO startTime via `data-start`) is NOT
+   * offered for the visible week, while other slots did load. A confirmed/pending
+   * booking removes its slot from availability (Phase 0.1), so the conflict shows as
+   * an absent slot rather than an error banner.
+   */
+  async expectSlotAbsent(startTime: string) {
+    await expect(this.page.getByTestId('booking-slot-item').first()).toBeVisible();
+    await expect(
+      this.page.locator(`[data-testid="booking-slot-item"][data-start="${startTime}"]`),
+    ).toHaveCount(0);
+  }
+
+  /** Assert the booking error banner is shown and contains the expected copy. */
+  async expectError(message: string | RegExp) {
+    await expect(this.page.getByTestId('booking-error')).toContainText(message);
+  }
+
   async fillCustomer(email: string) {
     await this.page.getByTestId('booking-first-name').fill('Test');
     await this.page.getByTestId('booking-last-name').fill('Customer');
