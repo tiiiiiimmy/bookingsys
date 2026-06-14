@@ -100,6 +100,24 @@ export async function getAvailableSlots(date: string, duration: number): Promise
   return (body?.data ?? body)?.slots ?? [];
 }
 
+/** Attempt to create a booking via the public API (raw response) — for conflict/409 assertions. */
+export async function bookSlotViaApi(input: {
+  email: string;
+  startTime: string;
+  endTime: string;
+  serviceTypeId: number;
+}): Promise<Response> {
+  return fetch(`${env.apiUrl}/bookings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      serviceTypeId: input.serviceTypeId,
+      slots: [{ startTime: input.startTime, endTime: input.endTime }],
+      customer: { firstName: 'Test', lastName: 'Customer', email: input.email, phone: '0211234567' },
+    }),
+  });
+}
+
 /** Create an availability block via the admin API; returns the created block (with id). */
 export async function createAvailabilityBlock(
   token: string,
