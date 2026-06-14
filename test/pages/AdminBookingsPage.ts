@@ -1,8 +1,7 @@
-import { Page, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { BasePage } from './BasePage.js';
 
-export class AdminBookingsPage {
-  constructor(private page: Page) {}
-
+export class AdminBookingsPage extends BasePage {
   async expectLoaded() {
     await expect(this.page).toHaveURL(/\/admin\/bookings/);
   }

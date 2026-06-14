@@ -1,10 +1,9 @@
-import { Page, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { BasePage } from './BasePage.js';
 
-export class ManageBookingPage {
-  constructor(private page: Page) {}
-
+export class ManageBookingPage extends BasePage {
   async open(token: string) {
-    await this.page.goto(`/booking/manage/${token}`);
+    await this.goto(`/booking/manage/${token}`);
   }
 
   /** Pick a date, choose the first available slot, submit the reschedule request. */
@@ -43,18 +42,18 @@ export class ManageBookingPage {
 
   /** The booking summary card is shown (page loaded for a valid token). */
   async expectLoaded() {
-    await expect(this.page.getByTestId('manage-booking-summary')).toBeVisible();
+    await this.expectVisible('manage-booking-summary');
   }
 
   /** The load-error banner is shown and no reschedule form is rendered. */
   async expectLoadError() {
-    await expect(this.page.getByTestId('manage-load-error')).toBeVisible();
-    await expect(this.page.getByTestId('manage-reschedule-submit')).toHaveCount(0);
+    await this.expectVisible('manage-load-error');
+    await this.expectAbsent('manage-reschedule-submit');
   }
 
   /** The reschedule history card is shown. */
   async expectHistoryVisible() {
-    await expect(this.page.getByTestId('manage-reschedule-history')).toBeVisible();
+    await this.expectVisible('manage-reschedule-history');
   }
 
   /** The reschedule submit button is disabled (booking can no longer be rescheduled). */
