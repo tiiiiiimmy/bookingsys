@@ -51,6 +51,101 @@ export async function getRescheduleRequestByBookingId(bookingId: number) {
   );
 }
 
+/** All reschedule requests for a booking (newest first) — for multi-pending assertions. */
+export async function getRescheduleRequestsByBookingId(bookingId: number) {
+  const [rows] = await db().query(
+    `SELECT id, status FROM booking_reschedule_requests WHERE booking_id = ? ORDER BY id DESC`,
+    [bookingId],
+  );
+  return rows as Array<{ id: number; status: string }>;
+}
+
+/** All bookings for a customer email (oldest first) — for group/multi-slot assertions. */
+export async function getBookingsByEmail(email: string) {
+  const [rows] = await db().query(
+    `SELECT b.id, b.status, b.start_time
+       FROM bookings b JOIN customers c ON c.id = b.customer_id
+      WHERE c.email = ?
+      ORDER BY b.id ASC`,
+    [email],
+  );
+  return rows as Array<{ id: number; status: string; start_time: string }>;
+}
+
+/** Raw booking status + cancellation reason — for expiry/conflict (cancelled) assertions. */
+export async function getBookingStatusReason(bookingId: number) {
+  return queryOne<{ status: string; cancellation_reason: string | null }>(
+    `SELECT status, cancellation_reason FROM bookings WHERE id = ?`,
+    [bookingId],
+  );
+}
+
+/** Force a pending booking's hold to be expired (so a later succeeded webhook cancels it). */
+export async function expireBookingHold(bookingId: number): Promise<void> {
+  await db().query('UPDATE bookings SET expires_at = NOW() - INTERVAL 1 HOUR WHERE id = ?', [bookingId]);
+}
+
+/**
+ * Directly seed a confirmed booking (+ succeeded payment) for a customer email, to create a
+ * pre-existing conflict at a slot. Uses the same email convention so `cleanupCustomer` removes it.
+ * `startTime`/`endTime` are MySQL DATETIME strings ('YYYY-MM-DD HH:mm:ss'); price/duration are
+ * derived from the service type and the time range.
+ */
+export async function insertConfirmedBooking(input: {
+  email: string;
+  startTime: string;
+  endTime: string;
+  serviceTypeId: number;
+  technicianId?: number | null;
+}): Promise<{ bookingId: number; customerId: number }> {
+  const conn = await db().getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [custRows] = await conn.query('SELECT id FROM customers WHERE email = ? LIMIT 1', [input.email]);
+    let customerId: number;
+    if ((custRows as Array<{ id: number }>).length > 0) {
+      customerId = (custRows as Array<{ id: number }>)[0].id;
+    } else {
+      const [ins] = await conn.query(
+        'INSERT INTO customers (first_name, last_name, email, phone) VALUES (?, ?, ?, ?)',
+        ['Seed', 'Customer', input.email, '0000000000'],
+      );
+      customerId = (ins as { insertId: number }).insertId;
+    }
+
+    const durationMinutes = Math.round((Date.parse(input.endTime) - Date.parse(input.startTime)) / 60_000);
+    const svc = await queryOne<{ price_cents: number }>(
+      'SELECT price_cents FROM service_types WHERE id = ?',
+      [input.serviceTypeId],
+    );
+    const priceCents = svc?.price_cents ?? 0;
+    const manageToken = `seed-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+    const [bk] = await conn.query(
+      `INSERT INTO bookings
+         (customer_id, service_type_id, technician_id, start_time, end_time, duration_minutes, status, price_cents, manage_token, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, NULL)`,
+      [customerId, input.serviceTypeId, input.technicianId ?? null, input.startTime, input.endTime, durationMinutes, priceCents, manageToken],
+    );
+    const bookingId = (bk as { insertId: number }).insertId;
+
+    await conn.query(
+      `INSERT INTO payments (booking_id, stripe_payment_intent_id, amount_cents, currency, status)
+       VALUES (?, ?, ?, 'usd', 'succeeded')`,
+      [bookingId, `pi_seed_${bookingId}_${Date.now()}`, priceCents],
+    );
+
+    await conn.commit();
+    return { bookingId, customerId };
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
+}
+
 /** Manage token for the latest booking of a customer email. */
 export async function getManageToken(email: string) {
   return queryOne<{ manage_token: string }>(
