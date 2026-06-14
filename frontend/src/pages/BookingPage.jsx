@@ -452,6 +452,7 @@ const BookingPage = () => {
                           key={service.id}
                           type="button"
                           data-testid="booking-service-option"
+                          data-duration={duration}
                           className={`rounded-[1.5rem] border p-5 text-left transition-all ${
                             isSelected
                               ? 'border-primary bg-primary-fixed/50'
@@ -530,6 +531,7 @@ const BookingPage = () => {
                     <span className="text-sm font-semibold text-on-surface">{currentWeekLabel}</span>
                     <button
                       type="button"
+                      data-testid="booking-next-week"
                       className="rounded-full border border-outline px-4 py-2 text-sm font-semibold text-secondary transition-colors hover:border-primary hover:text-primary"
                       onClick={() => {
                         const next = new Date(weekStart);

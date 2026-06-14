@@ -9,8 +9,22 @@ export class BookingPage {
     await this.page.goto('/booking');
   }
 
-  async selectFirstService() {
-    await this.page.getByTestId('booking-service-option').first().click();
+  /**
+   * Select a bookable service. The slot API only accepts durations that are a
+   * multiple of 30 minutes, so we pick the 60-minute service rather than the
+   * (unbookable via slots) 15-minute one.
+   */
+  async selectBookableService() {
+    await this.page.locator('[data-testid="booking-service-option"][data-duration="60"]').click();
+  }
+
+  /**
+   * Advance to next week. The default view is the current week (Mon–Sun); when
+   * "today" is late in the week those days are in the past and have no bookable
+   * slots, so we move to a fully-future week which always has active days.
+   */
+  async goToNextWeek() {
+    await this.page.getByTestId('booking-next-week').click();
   }
 
   async selectFirstSlot() {

@@ -12,7 +12,8 @@ Given('I am on the booking page', async ({ bookingPage }) => {
 });
 
 When('I select the first available service and slot', async ({ bookingPage }) => {
-  await bookingPage.selectFirstService();
+  await bookingPage.selectBookableService();
+  await bookingPage.goToNextWeek();
   await bookingPage.selectFirstSlot();
   await bookingPage.proceedToDetails();
 });

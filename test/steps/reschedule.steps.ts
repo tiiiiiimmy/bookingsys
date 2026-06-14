@@ -10,7 +10,8 @@ let bookingId: number;
 
 Given('a confirmed booking exists with a manage token', async ({ bookingPage, customerEmail }) => {
   await bookingPage.open();
-  await bookingPage.selectFirstService();
+  await bookingPage.selectBookableService();
+  await bookingPage.goToNextWeek();
   await bookingPage.selectFirstSlot();
   await bookingPage.proceedToDetails();
   await bookingPage.fillCustomer(customerEmail);

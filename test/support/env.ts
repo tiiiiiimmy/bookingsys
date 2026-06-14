@@ -41,6 +41,8 @@ if (!/test/i.test(env.db.database)) {
  */
 export function backendProcessEnv(): Record<string, string> {
   return {
+    // Backend listens on the port from API_URL.
+    PORT: new URL(env.apiUrl).port || '5001',
     DB_HOST: env.db.host,
     DB_PORT: String(env.db.port),
     DB_NAME: env.db.database,
