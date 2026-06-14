@@ -108,6 +108,21 @@ These resolve the exact messages/shapes the assertions need. Each spike reads ba
 - [ ] Add fixtures `adminBookingsPage: AdminBookingsPage`, `adminAvailabilityPage: AdminAvailabilityPage`, `manageBookingPage: ManageBookingPage`, `productOrderPage: ProductOrderPage` (constructed from `page`). Keep the Stripe-block `page` override.
 - [ ] Commit: `test(e2e): adminToken fixture and new page-object fixtures`.
 
+### Task 1.4: Authenticated admin session — skip UI login (foundational)
+**Files:** Modify `test/support/api.ts`, `test/support/fixtures.ts`
+- [ ] **Step 1:** `support/api.ts` — `seedAdminAuthInBrowser(page: Page, tokens?: { accessToken: string; refreshToken: string }): Promise<void>`. Key logic: if `tokens` omitted, call `adminLoginTokens()` (Task 1.2). Then `page.addInitScript` to write **both** keys into `localStorage` BEFORE app scripts run, so `AuthContext` boots authenticated:
+  ```ts
+  await page.addInitScript(([a, r]) => {
+    localStorage.setItem('accessToken', a);
+    localStorage.setItem('refreshToken', r);
+  }, [tokens.accessToken, tokens.refreshToken]);
+  ```
+  (Keys are `accessToken` / `refreshToken`, confirmed against `AuthContext.jsx` + `api.js`. `addInitScript` re-applies on every navigation, so it survives `goto`.)
+- [ ] **Step 2:** `support/fixtures.ts` — add fixture `adminPage: Page` (an already-authenticated page): builds on `page`, calls `seedAdminAuthInBrowser(page)`, then `use(page)`. Admin-UI scenarios depend on `adminPage` and go straight to `/admin/...` — no login screen.
+- [ ] **Step 3 (verify):** a smoke scenario `Admin session › Seeded admin lands directly on bookings` — `Given I am authenticated as admin` (uses `adminPage`), `When I open the admin bookings page` (`goto('/admin/bookings')`), `Then I land on the admin bookings page` (existing `AdminBookingsPage.expectLoaded()` — URL stays `/admin/bookings`, no redirect to `/admin/login`). Confirms the skip works.
+- [ ] **Consumers:** Phase 3 Task 3.3 (admin approve/reject) and all of Phase 5.2/5.3/5.4 use `adminPage` instead of `AdminLoginPage.login()`. The real UI-login flow stays covered by TC-AD-01/02 (Phase 5.1), which keep using `AdminLoginPage`.
+- [ ] Commit: `test(e2e): authenticated adminPage fixture to skip UI login`.
+
 ---
 
 ## Phase 2 — Booking extended (TC-BK-04..12)
