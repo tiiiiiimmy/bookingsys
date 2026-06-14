@@ -96,11 +96,12 @@ test/
 
 ## 6. Third-party mocking strategy
 
-The frontend uses real Stripe Elements; final confirmation is webhook-driven on the backend. To make outcomes deterministic without real charges:
+The frontend uses Stripe Elements; final confirmation is webhook-driven on the backend. Payment is **fully mocked locally** — no real Stripe API calls, no real test keys required:
 
-- **Proposed approach (to validate)**: a backend **test mode** enabled via `test/.env.test` that (a) stubs the real Stripe charge, and (b) exposes a controllable way for tests to inject the webhook outcome — `succeeded` / `failed` / `error`. The frontend test completes the payment step; the injected outcome drives the resulting status (`confirmed` vs not).
-- **Email**: stubbed in the same test mode; tests assert a notification *record* exists (via API or DB) rather than a real send.
-- **OPEN — planning spike #1**: the exact mechanism depends on backend Stripe/webhook code not yet read. The first task in the implementation plan is a spike to inspect the backend payment path and finalize this. Fallback options if no test hook exists: Stripe test-mode cards with deterministic outcomes, or Playwright network interception of the Stripe call.
+- **PaymentIntent creation**: a backend fake-payments mode (`STRIPE_FAKE_PAYMENTS=true`, injected by the harness) makes `StripeService.CreatePaymentIntentAsync` return a synthetic intent (`pi_fake_<guid>` + matching client secret) instead of calling `api.stripe.com`. No `sk_test` key needed.
+- **Confirmation outcome**: the test forges a **signed** Stripe webhook (`payment_intent.succeeded` / `payment_intent.payment_failed`) and POSTs it to `/api/webhooks/stripe`. The harness owns `STRIPE_WEBHOOK_SECRET`, so the HMAC signature verifies; the backend then flips the booking/order status. Invalid-signature posts are rejected (the exception scenario).
+- **Frontend payment step**: tests never submit the Stripe Elements card form — after the create response they forge the webhook and navigate directly to the confirmation page.
+- **Email**: not configured in the test env, so sends are no-ops; the listed scenarios don't assert on email.
 
 ## 7. Selector convention (`data-testid`)
 

@@ -49,5 +49,7 @@ export function backendProcessEnv(): Record<string, string> {
     STRIPE_SECRET_KEY: env.stripe.secretKey,
     STRIPE_PUBLISHABLE_KEY: env.stripe.publishableKey,
     STRIPE_WEBHOOK_SECRET: env.stripe.webhookSecret,
+    // Local mock: backend returns synthetic payment intents, no real Stripe API.
+    STRIPE_FAKE_PAYMENTS: 'true',
   };
 }

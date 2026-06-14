@@ -47,6 +47,19 @@ public sealed class StripeService
         Dictionary<string, string>? metadata = null,
         CancellationToken cancellationToken = default)
     {
+        if (_stripeSettings.FakePayments)
+        {
+            var fakeId = $"pi_fake_{Guid.NewGuid():N}";
+            return new StripePaymentIntentDto
+            {
+                Id = fakeId,
+                ClientSecret = $"{fakeId}_secret_{Guid.NewGuid():N}",
+                Status = "requires_payment_method",
+                Amount = amountCents,
+                Currency = currency,
+            };
+        }
+
         EnsureConfigured();
 
         var fields = new Dictionary<string, string>
