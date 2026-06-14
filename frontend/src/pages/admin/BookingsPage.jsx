@@ -229,8 +229,8 @@ const BookingsPage = () => {
           </div>
         </div>
 
-        {error ? <div className={`${getAdminAlertClass('error')} mb-5`}>{error}</div> : null}
-        {message ? <div className={`${getAdminAlertClass('success')} mb-5`}>{message}</div> : null}
+        {error ? <div data-testid="admin-bookings-error" className={`${getAdminAlertClass('error')} mb-5`}>{error}</div> : null}
+        {message ? <div data-testid="admin-bookings-message" className={`${getAdminAlertClass('success')} mb-5`}>{message}</div> : null}
 
         <div className="mb-6 grid gap-3 md:grid-cols-2">
           <input
@@ -399,6 +399,7 @@ const BookingsPage = () => {
               <h3 className={adminSubsectionTitleClass}>{t.bookings.reschedule.title}</h3>
               <div className="grid gap-3 md:grid-cols-2">
                 <input
+                  data-testid="admin-reschedule-start"
                   aria-label={t.bookings.reschedule.startTime}
                   className={adminInputClass}
                   required
@@ -407,6 +408,7 @@ const BookingsPage = () => {
                   onChange={(event) => setRescheduleForm((prev) => ({ ...prev, startTime: event.target.value }))}
                 />
                 <input
+                  data-testid="admin-reschedule-end"
                   aria-label={t.bookings.reschedule.endTime}
                   className={adminInputClass}
                   required
@@ -422,7 +424,7 @@ const BookingsPage = () => {
                 value={rescheduleForm.adminNote}
                 onChange={(event) => setRescheduleForm((prev) => ({ ...prev, adminNote: event.target.value }))}
               />
-              <button className={adminButtonPrimaryClass} type="submit">
+              <button data-testid="admin-reschedule-submit" className={adminButtonPrimaryClass} type="submit">
                 {t.bookings.actions.submitReschedule}
               </button>
             </form>

@@ -309,7 +309,7 @@ These resolve the exact messages/shapes the assertions need. Each spike reads ba
 - Add `data-testid`s: `admin-reschedule-start`, `admin-reschedule-end`, `admin-reschedule-submit` on the admin manual-reschedule form.
 - `AdminBookingsPage.manualReschedule(startIso: string, endIso: string)` — fill datetime inputs + submit; waits for the reschedule response.
 - ✅ TC-AD-09: select a confirmed booking, manual-reschedule to a valid future slot (duration matches service) → success message + DB `bookings.start_time/end_time` updated; a duration-mismatch attempt → error (string from Task 0.2), DB unchanged.
-- Commit: `test(e2e): TC-AD-09 admin manual reschedule`.
+- [x] Commit: `test(e2e): TC-AD-09 admin manual reschedule`.
 
 ### Task 5.4: Availability management + negatives (TC-AD-10, TC-AD-11)
 

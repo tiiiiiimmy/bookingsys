@@ -46,6 +46,23 @@ export class AdminBookingsPage extends BasePage {
     await expect(this.locator(`admin-detail-${field}`)).toContainText(value);
   }
 
+  async manualReschedule(startIso: string, endIso: string) {
+    await this.locator('admin-reschedule-start').fill(startIso);
+    await this.locator('admin-reschedule-end').fill(endIso);
+    await Promise.all([
+      this.page.waitForResponse((r) => r.url().includes('/admin/bookings/') && r.url().includes('/reschedule') && r.request().method() === 'POST'),
+      this.locator('admin-reschedule-submit').click(),
+    ]);
+  }
+
+  async expectMessage(message: string | RegExp) {
+    await expect(this.locator('admin-bookings-message')).toContainText(message);
+  }
+
+  async expectError(message: string | RegExp) {
+    await expect(this.locator('admin-bookings-error')).toContainText(message);
+  }
+
   /** Approve the first pending reschedule request (accepting the adminNote prompt). */
   async approvePendingReschedule() {
     this.page.once('dialog', (dialog) => dialog.accept(''));
