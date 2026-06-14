@@ -46,9 +46,21 @@ When('a webhook with an invalid signature arrives', async () => {
   expect(status).toBe(400);
 });
 
+When('I open the booking confirmation page', async ({ confirmationPage }) => {
+  await confirmationPage.open(payment.bookingId);
+});
+
 Then('I see the booking confirmed', async ({ confirmationPage }) => {
   await confirmationPage.open(payment.bookingId);
   await confirmationPage.expectStatus('confirmed');
+});
+
+Then('I see the payment marked failed', async ({ confirmationPage }) => {
+  await confirmationPage.expectPaymentStatus('failed');
+});
+
+Then('I see the booking still processing', async ({ confirmationPage }) => {
+  await confirmationPage.expectProcessing();
 });
 
 Then('the booking is confirmed in the database', async ({ customerEmail }) => {
