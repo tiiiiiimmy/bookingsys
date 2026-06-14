@@ -43,9 +43,10 @@ variables:
   BASE_URL: 'http://localhost:3000'
   API_URL: 'http://localhost:5001/api'
   # Isolated test database — DB_NAME MUST contain "test" (harness safety guard refuses otherwise).
+  # DB_NAME is set per test job so the @api and E2E jobs never share a DB/slots if the pool
+  # runs them in parallel on different agents.
   DB_HOST: 'localhost'
   DB_PORT: '3306'
-  DB_NAME: 'bookingsys_test'
   DB_USER: 'bookingsys_test'
   # DB_PASSWORD: defined as a secret pipeline variable.
   # Webhook secret is ours to choose — payments are fully mocked in tests.
@@ -102,6 +103,8 @@ stages:
         displayName: API / contract tests (@api)
         dependsOn: backend_build
         timeoutInMinutes: 30
+        variables:
+          DB_NAME: 'bookingsys_test_api'
         steps:
           - checkout: self
 
@@ -183,6 +186,8 @@ stages:
           - backend_build
           - frontend_build
         timeoutInMinutes: 45
+        variables:
+          DB_NAME: 'bookingsys_test_e2e'
         steps:
           - checkout: self
 
