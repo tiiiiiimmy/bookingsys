@@ -234,18 +234,21 @@ const BookingsPage = () => {
 
         <div className="mb-6 grid gap-3 md:grid-cols-2">
           <input
+            data-testid="admin-filter-from"
             className={adminInputClass}
             type="date"
             value={filters.startDate}
             onChange={(event) => setFilters((prev) => ({ ...prev, startDate: event.target.value }))}
           />
           <input
+            data-testid="admin-filter-to"
             className={adminInputClass}
             type="date"
             value={filters.endDate}
             onChange={(event) => setFilters((prev) => ({ ...prev, endDate: event.target.value }))}
           />
           <select
+            data-testid="admin-filter-status"
             className={adminInputClass}
             value={filters.status}
             onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}
@@ -260,13 +263,14 @@ const BookingsPage = () => {
             <option value="expired">{getAdminStatusLabel(t, 'expired')}</option>
           </select>
           <input
+            data-testid="admin-filter-search"
             className={adminInputClass}
             placeholder={t.bookings.filters.searchPlaceholder}
             type="text"
             value={filters.search}
             onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
           />
-          <button className={adminButtonPrimaryClass} type="button" onClick={loadBookings}>
+          <button data-testid="admin-filter-submit" className={adminButtonPrimaryClass} type="button" onClick={loadBookings}>
             {t.bookings.filters.search}
           </button>
         </div>
@@ -332,7 +336,7 @@ const BookingsPage = () => {
                 <p className={adminFieldLabelClass}>{t.bookings.fields.bookingId}</p>
                 <p className={adminFieldValueClass}>#{selectedBooking.id}</p>
               </div>
-              <div className={adminDetailCardClass}>
+              <div data-testid="admin-detail-customer" className={adminDetailCardClass}>
                 <p className={adminFieldLabelClass}>{t.bookings.fields.customer}</p>
                 <p className={adminFieldValueClass}>{selectedBooking.customerName}</p>
               </div>
@@ -344,7 +348,7 @@ const BookingsPage = () => {
                 <p className={adminFieldLabelClass}>{t.bookings.fields.phone}</p>
                 <p className={adminFieldValueClass}>{selectedBooking.customerPhone}</p>
               </div>
-              <div className={adminDetailCardClass}>
+              <div data-testid="admin-detail-service" className={adminDetailCardClass}>
                 <p className={adminFieldLabelClass}>{t.bookings.fields.service}</p>
                 <p className={adminFieldValueClass}>{selectedBooking.serviceName}</p>
               </div>
@@ -354,7 +358,7 @@ const BookingsPage = () => {
                   {selectedBooking.durationMinutes} {t.common.minuteUnit}
                 </p>
               </div>
-              <div className={adminDetailCardClass}>
+              <div data-testid="admin-detail-time" className={adminDetailCardClass}>
                 <p className={adminFieldLabelClass}>{t.bookings.fields.time}</p>
                 <p className={adminFieldValueClass}>{formatDateTime(selectedBooking.startTime)}</p>
               </div>
@@ -366,7 +370,7 @@ const BookingsPage = () => {
                 <p className={adminFieldLabelClass}>{t.bookings.fields.bookingStatus}</p>
                 <div className="mt-2">{renderStatusBadges(t, selectedBooking.status)}</div>
               </div>
-              <div className={adminDetailCardClass}>
+              <div data-testid="admin-detail-payment-status" className={adminDetailCardClass}>
                 <p className={adminFieldLabelClass}>{t.bookings.fields.paymentStatus}</p>
                 <p className={adminFieldValueClass}>
                   {getAdminStatusLabel(t, selectedBooking.paymentStatus || 'pending')}
@@ -376,7 +380,7 @@ const BookingsPage = () => {
                 <p className={adminFieldLabelClass}>{t.bookings.fields.paymentIntent}</p>
                 <p className={adminFieldValueClass}>{selectedBooking.stripePaymentIntentId || '-'}</p>
               </div>
-              <div className={adminDetailCardClass}>
+              <div data-testid="admin-detail-manage-token" className={adminDetailCardClass}>
                 <p className={adminFieldLabelClass}>{t.bookings.fields.manageToken}</p>
                 <p className={adminFieldValueClass}>{selectedBooking.manageToken || '-'}</p>
               </div>
@@ -423,7 +427,7 @@ const BookingsPage = () => {
               </button>
             </form>
 
-            <div>
+            <div data-testid="admin-detail-reschedule-requests">
               <h3 className={adminSubsectionTitleClass}>{t.bookings.requests.title}</h3>
               {!selectedBooking.rescheduleRequests?.length ? (
                 <p className={adminEmptyStateClass}>{t.bookings.requests.empty}</p>
