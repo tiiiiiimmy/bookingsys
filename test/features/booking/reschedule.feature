@@ -7,3 +7,19 @@ Feature: Reschedule a booking
     When the customer requests a new date via the manage link
     And the admin approves the reschedule request
     Then the reschedule request is approved in the database
+
+  Scenario: Customer views the manage page and submits a reschedule request
+    Given a confirmed booking exists with a manage token
+    When the customer opens the manage page
+    Then the manage page shows the booking summary and history
+    When the customer submits a reschedule request for next week
+    Then the booking has one pending reschedule request
+
+  Scenario: An unknown manage token shows a load error
+    When the customer opens the manage page with an unknown token
+    Then the manage page shows a load error and no reschedule form
+
+  Scenario: A cancelled booking cannot be rescheduled
+    Given a cancelled booking exists with a manage token
+    When the customer opens the manage page
+    Then the reschedule form is disabled

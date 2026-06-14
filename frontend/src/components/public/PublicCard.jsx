@@ -1,8 +1,8 @@
 import React from 'react';
 
-const PublicCard = ({ title, eyebrow, children, className = '' }) => {
+const PublicCard = ({ title, eyebrow, children, className = '', ...rest }) => {
   return (
-    <section className={`rounded-[2rem] border border-outline/80 bg-surface-container-lowest p-6 shadow-[0_10px_24px_rgba(82,68,62,0.05)] ${className}`}>
+    <section {...rest} className={`rounded-[2rem] border border-outline/80 bg-surface-container-lowest p-6 shadow-[0_10px_24px_rgba(82,68,62,0.05)] ${className}`}>
       {eyebrow ? (
         <p className="mb-3 font-label text-xs uppercase tracking-[0.25em] text-tertiary">{eyebrow}</p>
       ) : null}

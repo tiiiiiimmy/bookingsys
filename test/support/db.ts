@@ -93,6 +93,11 @@ export async function getBookingStatusReason(bookingId: number) {
   );
 }
 
+/** Force a booking into a given status (e.g. 'cancelled') for manage-page gating assertions. */
+export async function setBookingStatus(bookingId: number, status: string): Promise<void> {
+  await db().query('UPDATE bookings SET status = ? WHERE id = ?', [status, bookingId]);
+}
+
 /** Force a pending booking's hold to be expired (so a later succeeded webhook cancels it). */
 export async function expireBookingHold(bookingId: number): Promise<void> {
   // Local wall-clock past time, matching the backend's DateTime.Now-based IsExpired check.

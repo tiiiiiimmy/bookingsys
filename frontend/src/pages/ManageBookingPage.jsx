@@ -143,7 +143,7 @@ const ManageBookingPage = () => {
 
         {!loading && error && !booking ? (
           <PublicCard>
-            <div className="rounded-2xl bg-error-container px-4 py-3 text-sm text-on-error-container">{error}</div>
+            <div data-testid="manage-load-error" className="rounded-2xl bg-error-container px-4 py-3 text-sm text-on-error-container">{error}</div>
             <div className="mt-6">
               <Link
                 className="inline-flex rounded-full bg-primary px-6 py-3 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-container"
@@ -158,7 +158,7 @@ const ManageBookingPage = () => {
         {!loading && booking ? (
           <div className="space-y-6">
             {error ? (
-              <div className="rounded-[1.5rem] bg-error-container px-5 py-4 text-sm text-on-error-container">{error}</div>
+              <div data-testid="manage-reschedule-error" className="rounded-[1.5rem] bg-error-container px-5 py-4 text-sm text-on-error-container">{error}</div>
             ) : null}
             {message ? (
               <div data-testid="manage-reschedule-result" className="rounded-[1.5rem] bg-emerald-100 px-5 py-4 text-sm text-emerald-800">{message}</div>
@@ -166,7 +166,7 @@ const ManageBookingPage = () => {
 
             <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
               <div className="space-y-6">
-                <PublicCard title={manageCopy.cards.currentBooking}>
+                <PublicCard data-testid="manage-booking-summary" title={manageCopy.cards.currentBooking}>
                   <SummaryRow label={manageCopy.labels.customer} value={booking.customerName} />
                   <SummaryRow label={manageCopy.labels.service} value={booking.serviceName} />
                   <SummaryRow
@@ -189,7 +189,7 @@ const ManageBookingPage = () => {
                   <SummaryRow label={manageCopy.labels.supportEmail} value={booking.supportEmail} />
                 </PublicCard>
 
-                <PublicCard title={manageCopy.cards.history}>
+                <PublicCard data-testid="manage-reschedule-history" title={manageCopy.cards.history}>
                   {!booking.rescheduleRequests?.length ? (
                     <p className="text-sm text-on-surface-variant">{manageCopy.empty.noHistory}</p>
                   ) : (

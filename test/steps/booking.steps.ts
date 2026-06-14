@@ -18,6 +18,7 @@ import {
   getSlotsResponse,
   type AvailableSlot,
 } from '../support/api.js';
+import { addDays, dateKey, findNextWeekSlot, mondayOf, toSqlDateTime } from '../support/dates.js';
 import type { BookingPaymentInfo } from '../pages/BookingPage.js';
 
 // Scenario-scoped state (steps run sequentially within a scenario).
@@ -37,11 +38,6 @@ let piB: string;
 let bookResponse: Response;
 let bookBody: { error?: { message?: string } };
 
-/** ISO 'YYYY-MM-DDTHH:mm:ss' -> MySQL DATETIME 'YYYY-MM-DD HH:mm:ss'. */
-function toSqlDateTime(iso: string): string {
-  return iso.replace('T', ' ');
-}
-
 // Remove any availability block a scenario created, even on failure.
 After(async () => {
   if (createdBlockId) {
@@ -49,38 +45,6 @@ After(async () => {
     createdBlockId = 0;
   }
 });
-
-/** Monday of the week containing `date` (mirrors the booking page's week logic). */
-function mondayOf(date: Date): Date {
-  const result = new Date(date);
-  const day = result.getDay();
-  result.setHours(0, 0, 0, 0);
-  result.setDate(result.getDate() + (day === 0 ? -6 : 1 - day));
-  return result;
-}
-
-function addDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
-function dateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-/** First available 60-min slot in next week (the open days are Mon–Thu). */
-async function findNextWeekSlot(): Promise<{ startTime: string; endTime: string }> {
-  const nextMonday = addDays(mondayOf(new Date()), 7);
-  for (let offset = 0; offset < 4; offset += 1) {
-    const slots = await getAvailableSlots(dateKey(addDays(nextMonday, offset)), 60);
-    if (slots.length > 0) return slots[0];
-  }
-  throw new Error('No available 60-min slot found next week to seed a conflict');
-}
 
 Given('I am on the booking page', async ({ bookingPage }) => {
   await bookingPage.open();
