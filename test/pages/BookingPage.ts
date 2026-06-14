@@ -1,12 +1,11 @@
-import { Page, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { BasePage } from './BasePage.js';
 
 export type BookingPaymentInfo = { clientSecret: string; bookingId: number };
 
-export class BookingPage {
-  constructor(private page: Page) {}
-
+export class BookingPage extends BasePage {
   async open() {
-    await this.page.goto('/booking');
+    await this.goto('/booking');
   }
 
   /**
@@ -78,10 +77,10 @@ export class BookingPage {
   }
 
   async fillCustomer(email: string) {
-    await this.page.getByTestId('booking-first-name').fill('Test');
-    await this.page.getByTestId('booking-last-name').fill('Customer');
-    await this.page.getByTestId('booking-email').fill(email);
-    await this.page.getByTestId('booking-phone').fill('0211234567');
+    await this.fill('booking-first-name', 'Test');
+    await this.fill('booking-last-name', 'Customer');
+    await this.fill('booking-email', email);
+    await this.fill('booking-phone', '0211234567');
   }
 
   /**
@@ -101,10 +100,10 @@ export class BookingPage {
     } else {
       values[field] = '';
     }
-    await this.page.getByTestId('booking-first-name').fill(values.firstName);
-    await this.page.getByTestId('booking-last-name').fill(values.lastName);
-    await this.page.getByTestId('booking-email').fill(values.email);
-    await this.page.getByTestId('booking-phone').fill(values.phone);
+    await this.fill('booking-first-name', values.firstName);
+    await this.fill('booking-last-name', values.lastName);
+    await this.fill('booking-email', values.email);
+    await this.fill('booking-phone', values.phone);
   }
 
   /**

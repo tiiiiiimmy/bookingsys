@@ -1,19 +1,18 @@
-import { Page, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { BasePage } from './BasePage.js';
 
 export type ProductOrderPaymentInfo = { clientSecret: string; orderId: number };
 
-export class ProductOrderPage {
-  constructor(private page: Page) {}
-
+export class ProductOrderPage extends BasePage {
   /** /order is a checkout for a specific product passed via the `product` query param. */
   async open(product: string) {
-    await this.page.goto(`/order?product=${encodeURIComponent(product)}`);
+    await this.goto(`/order?product=${encodeURIComponent(product)}`);
   }
 
   async fillCustomer(email: string) {
-    await this.page.getByTestId('order-first-name').fill('Test');
-    await this.page.getByTestId('order-last-name').fill('Buyer');
-    await this.page.getByTestId('order-email').fill(email);
+    await this.fill('order-first-name', 'Test');
+    await this.fill('order-last-name', 'Buyer');
+    await this.fill('order-email', email);
   }
 
   /**
@@ -32,9 +31,9 @@ export class ProductOrderPage {
     } else {
       values[field] = '';
     }
-    await this.page.getByTestId('order-first-name').fill(values.firstName);
-    await this.page.getByTestId('order-last-name').fill(values.lastName);
-    await this.page.getByTestId('order-email').fill(values.email);
+    await this.fill('order-first-name', values.firstName);
+    await this.fill('order-last-name', values.lastName);
+    await this.fill('order-email', values.email);
   }
 
   /** Submits the order and returns orderId + clientSecret from POST /product-orders. */
@@ -70,14 +69,12 @@ export class ProductOrderPage {
 
   /** No auto-redirect in tests (webhook is forged), so navigate explicitly. */
   async openConfirmation(orderId: number) {
-    await this.page.goto(`/order/confirmation/${orderId}`);
+    await this.goto(`/order/confirmation/${orderId}`);
   }
 
   /** Asserts the raw (non-localized) order status via the data-status attribute. */
   async expectStatus(expected: string) {
-    await expect(this.page.getByTestId('order-status-badge')).toHaveAttribute('data-status', expected, {
-      timeout: 15_000,
-    });
+    await this.expectAttr('order-status-badge', 'data-status', expected);
   }
 
   async expectProcessing() {
@@ -86,6 +83,6 @@ export class ProductOrderPage {
   }
 
   async expectProductNotFound() {
-    await expect(this.page.getByTestId('order-not-found')).toBeVisible();
+    await this.expectVisible('order-not-found');
   }
 }
