@@ -57,27 +57,46 @@ test/
 
 These resolve the exact messages/shapes the assertions need. Each spike reads backend code and records the answer in this plan's task that consumes it. No app changes unless a spike explicitly calls for one.
 
-### Task 0.1: Booking conflict + hold-expiry contract
-- Read: `backend/Services/BookingService.cs` (`CreateAsync` conflict check; `HandlePaymentIntentSucceededAsync` overlap/expiry branch; the cancellation reason string).
-- Record: exact HTTP status + error message for "slot already taken" on `POST /bookings`; the `bookings.status` value after a succeeded-but-expired/conflicting webhook (expected `cancelled`) and the stored reason; the `bookings.expires_at` column + how a pending hold is represented.
-- Output feeds: TC-BK-07, TC-BK-08, TC-BK-09, TC-BK-10.
+### Task 0.1: Booking conflict + hold-expiry contract ✅
+- Read: `backend/Services/BookingService.cs` (`CreateBookingAsync`, `EnsureSlotIsAvailableAsync`, `HasOverlappingBookingAsync`, `HandlePaymentIntentSucceededAsync`, `GetEffectiveStatus`/`IsExpired`).
+- **Findings:**
+  - `POST /api/bookings` (route `api/bookings`). Slot-taken errors, both **409 Conflict**: `"Selected time slot is no longer available"` (requested slot not in the available set — e.g. already booked/blocked/past) and `"Time slot conflicts with existing booking"` (overlap re-check at insert). Duration errors **400**: `"Selected slot must match service duration of {N} minutes"`, `"Booking duration must be a multiple of 30 minutes"`, `"End time must be after start time"`, `"Booking duration is invalid"`.
+  - **A confirmed (or non-expired pending) booking REMOVES its slot from `GET /api/availability/slots`** (`GetBookingsAsync` includes `pending`/`confirmed`/`arrived` with live holds). ⇒ For TC-BK-07/08 the conflicting slot is **absent in the UI**, not an error banner. Asserting via direct `POST /api/bookings` to that time yields 409 `"Selected time slot is no longer available"`.
+  - Pending hold = `bookings.status='pending'` + `expires_at = NOW()+30min`. A pending hold is ignored by availability/overlap once `expires_at <= NOW()`.
+  - Succeeded webhook on an **expired/conflicting** booking ⇒ `bookings.status='cancelled'`, `cancellation_reason="Payment succeeded after the booking hold expired or conflicted. Manual review or refund may be required."`, `payments.status='succeeded'`.
+  - `GetEffectiveStatus` maps a pending+expired+unpaid booking to the synthetic display status `"expired"` (raw row stays `pending`). `IsExpired` = `expires_at <= now AND payment != 'succeeded'`.
+  - Columns confirmed for seeding: `bookings(customer_id, service_type_id, technician_id, start_time, end_time, duration_minutes, status, created_via, payment_mode, price_cents, notes, manage_token, booking_group_token, expires_at, cancellation_reason)`; `payments(booking_id, stripe_payment_intent_id, amount_cents, currency, status)`; `customers(first_name, last_name, email, phone)`.
+- Output feeds: TC-BK-07 (assert slot absent), TC-BK-08, TC-BK-09, TC-BK-10.
 
-### Task 0.2: Reschedule rules contract
-- Read: `backend/Controllers/AdminOperationsController.cs` + `BookingService` reschedule methods + `BookingManagementController` reschedule-request endpoint.
-- Record: validation errors (duration/availability), the "one pending per booking" conflict message, approve side-effects (updates `bookings.start_time/end_time`, marks others rejected), reject side-effects (only request status changes), and the already-reviewed error.
+### Task 0.2: Reschedule rules contract ✅
+- Read: `AdminOperationsController.cs`, `BookingManagementController.cs`, `BookingService` (`CreateRescheduleRequestAsync`, `ApproveRescheduleRequestAsync`, `RejectRescheduleRequestAsync`, `GetBookingByManageTokenAsync`).
+- **Findings:**
+  - **Customer create:** `POST /api/bookings/manage/{token}/reschedule-request` → **201** `{ data: RescheduleRequestDto, message: "Reschedule request created" }`. Errors: blocked statuses `cancelled/completed/no_show/arrived` → **400** `"This booking can no longer be rescheduled"`; duration → **400** (same strings as 0.1); availability → **409** (same two strings as 0.1); existing pending → **409** `"There is already a pending reschedule request for this booking"`.
+  - `ManagedBookingDto.CanRequestReschedule = (status == "confirmed" || status == "pending")` — drives the manage-page submit enabled/disabled state.
+  - **Admin approve:** `POST /api/admin/reschedule-requests/{id}/approve` body `{ adminNote }` → **200** `message: "Reschedule request approved"`. Side-effects: `bookings.start_time/end_time` ← requested times; request → `approved` + `reviewed_at`; **all OTHER pending requests for the same booking → `rejected`** with `admin_note="Another reschedule request was approved."`. Re-approving a non-pending request → **400** `"Reschedule request has already been reviewed"`. Note: approve re-validates availability/duration (can 409/400).
+  - **Admin reject:** `POST /api/admin/reschedule-requests/{id}/reject` → **200** `message: "Reschedule request rejected"`. Only the request row → `rejected` (SQL `WHERE status='pending'`); **booking times unchanged**. If not pending/not found → **404** `"Pending reschedule request not found"`.
 - Output feeds: TC-RS-02..11.
 
-### Task 0.3: Auth refresh contract
-- Read: `frontend/src/services/api.js` interceptor + `AdminController` refresh endpoint.
-- Record: how to simulate an expired access token in a browser test (e.g. overwrite `localStorage.accessToken` with an expired/garbage JWT), the refresh request/response shape, and the redirect-on-refresh-failure path.
+### Task 0.3: Auth refresh contract ✅
+- Read: `frontend/src/services/api.js` interceptor + `AdminController.cs`.
+- **Findings:**
+  - 401 interceptor (skips `/admin/auth/login` + `/admin/auth/refresh`, once per request via `_retry`): reads `localStorage.refreshToken`; `POST {API_URL}/admin/auth/refresh` body `{ refreshToken }`; on success reads `response.data.data.accessToken`, stores it, retries original request with new bearer. On failure: removes `accessToken` + `refreshToken`, `window.location.href = '/admin/login'`.
+  - `POST /api/admin/auth/login` → `{ data: { accessToken, refreshToken, ... } }`; `POST /api/admin/auth/refresh` → `{ data: { accessToken, ... } }` (RefreshResultDto, access only).
+  - **Simulate in browser:** TC-AD-04 (refresh succeeds) → keep a valid `refreshToken`, overwrite `localStorage.accessToken` with a garbage/expired JWT, then trigger a protected admin API (navigate to an admin data page) → 401 → interceptor refreshes → page loads, no redirect. TC-AD-05 (refresh fails) → set BOTH tokens to garbage → refresh 401 → tokens cleared + redirect to `/admin/login`.
+  - Triggering the 401 needs a protected GET (e.g. `/api/admin/bookings` or `/api/admin/auth/me`); the admin pages issue these on load.
 - Output feeds: TC-AD-04, TC-AD-05.
 
-### Task 0.4: Product-order failure + availability validation contract
-- Read: `backend/Services/ProductOrderService.cs`, `ProductOrderConfirmationPage.jsx`, `AvailabilityController`/`AvailabilityService`.
-- Record: confirmation-page state for a non-paid order (TC-OD-04/05 → assert stays pending / "Processing"); availability validation rules that DO exist (invalid day, block end<start) and the one that does NOT (business-hours start>end) — TC-AD-11 marks that case `test.fixme` until backend enforces it.
+### Task 0.4: Product-order failure + availability validation contract ✅
+- Read: `ProductOrderService.cs`, `ProductOrderConfirmationPage.jsx`, `AvailabilityController.cs`/`AvailabilityService.cs`, `BookingService.HandlePaymentIntentSucceededAsync`.
+- **Findings:**
+  - **Product orders never write a `payments` row** — they store `stripe_payment_intent_id` on `product_orders`. The `payment_intent.payment_failed` handler only `UPDATE payments …` ⇒ **no-op for product orders**. `payment_intent.succeeded`: BookingService finds no payment record, falls through to `ProductOrderService.HandlePaymentSucceededAsync` ⇒ `product_orders.status` `pending`→`paid`. **There is no `failed` status for product orders.**
+  - ⇒ TC-OD-04/05: a failed (or never-sent) product payment leaves `product_orders.status='pending'`. Confirmation page (`ProductOrderConfirmationPage.jsx`): `isPaid = status ∈ {paid, fulfilled}`; heading `"Processing Payment"` while pending vs `"Order Confirmed"` when paid; **`data-testid="order-status-badge"` `data-status={order.status}` already present** (hidden span). Page polls `getById` every 5s. So assert `data-status=pending` + "Processing Payment". TC-OD-05 = same assertion as TC-OD-04 (documented: failed product payment stays pending by design; no backend change).
+  - **Availability validation that EXISTS:** business hours `PUT /api/availability/admin/business-hours/{day}` → invalid day → **400** `"Invalid day of week. Must be 0-6"`; unparseable time → **400** `"Start time and end time must be valid times"`. Block `POST /api/availability/admin/blocks` end≤start → **400** `"End time must be after start time"`. `DELETE /api/availability/admin/blocks/{id}` missing → **404** `"Availability block not found"`.
+  - **Validation that does NOT exist:** business-hours `start > end` is **not** checked (only time-parse + day range). ⇒ TC-AD-11 marks that single case `test.fixme`.
+  - Public availability endpoint for cross-checks: `GET /api/availability/slots?date=YYYY-MM-DD&duration=N`. Slot generation is `[open, close)` in 30-min steps; a slot is emitted only if `slotEnd <= close`.
 - Output feeds: TC-OD-04, TC-OD-05, TC-AD-10, TC-AD-11.
 
-- [ ] Commit: `docs(test): record backend contracts for e2e 2.0 (phase 0 spikes)` (update this plan's task notes in place).
+- [x] Commit: `docs(test): record backend contracts for e2e 2.0 (phase 0 spikes)` (update this plan's task notes in place).
 
 ---
 
