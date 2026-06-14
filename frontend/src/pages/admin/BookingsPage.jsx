@@ -283,6 +283,8 @@ const BookingsPage = () => {
               return (
                 <button
                   key={booking.id}
+                  data-testid="admin-booking-row"
+                  data-email={booking.customerEmail}
                   className={`${adminListButtonClass} ${
                     isSelected ? 'border-primary bg-primary-fixed/20 ring-2 ring-primary-fixed' : ''
                   }`}
@@ -428,7 +430,12 @@ const BookingsPage = () => {
               ) : (
                 <div className={adminListClass}>
                   {selectedBooking.rescheduleRequests.map((request) => (
-                    <div key={request.id} className={adminListButtonClass}>
+                    <div
+                      key={request.id}
+                      data-testid="admin-reschedule-request"
+                      data-status={request.status}
+                      className={adminListButtonClass}
+                    >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                           <p className="text-lg font-semibold text-on-surface">
@@ -449,6 +456,7 @@ const BookingsPage = () => {
                             <div className="flex flex-wrap justify-end gap-2">
                               <button
                                 className={adminButtonSuccessClass}
+                                data-testid="admin-reschedule-approve"
                                 type="button"
                                 onClick={() => handleReviewRequest(request.id, 'approve')}
                               >
@@ -456,6 +464,7 @@ const BookingsPage = () => {
                               </button>
                               <button
                                 className={adminButtonDangerClass}
+                                data-testid="admin-reschedule-reject"
                                 type="button"
                                 onClick={() => handleReviewRequest(request.id, 'reject')}
                               >

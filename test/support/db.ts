@@ -73,6 +73,28 @@ export async function getRescheduleRequestsByBookingId(bookingId: number) {
   return rows as Array<{ id: number; status: string }>;
 }
 
+/** Latest reschedule request for a booking with its requested times — for approve/reject cross-checks. */
+export async function getRescheduleRequestDetail(bookingId: number) {
+  return queryOne<{
+    id: number;
+    status: string;
+    requested_start_time: string;
+    requested_end_time: string;
+  }>(
+    `SELECT id, status, requested_start_time, requested_end_time
+       FROM booking_reschedule_requests WHERE booking_id = ? ORDER BY id DESC LIMIT 1`,
+    [bookingId],
+  );
+}
+
+/** A booking's current start/end times — for reschedule approve/reject DB assertions. */
+export async function getBookingTimes(bookingId: number) {
+  return queryOne<{ start_time: string; end_time: string }>(
+    `SELECT start_time, end_time FROM bookings WHERE id = ?`,
+    [bookingId],
+  );
+}
+
 /** All bookings for a customer email (oldest first) — for group/multi-slot assertions. */
 export async function getBookingsByEmail(email: string) {
   const [rows] = await db().query(

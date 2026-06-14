@@ -38,3 +38,21 @@ Feature: Reschedule a booking
     And another booking takes that slot before submission
     And the customer submits the reschedule request expecting a conflict
     Then the booking has no pending reschedule request
+
+  Scenario: Admin approves a reschedule request via the UI
+    Given a confirmed booking exists with a manage token
+    And the customer has requested a reschedule
+    And I am authenticated as admin
+    When I open the admin bookings page
+    And the admin approves the customer's reschedule request
+    Then the reschedule request shows as approved
+    And the booking time matches the approved request
+
+  Scenario: Admin rejects a reschedule request via the UI
+    Given a confirmed booking exists with a manage token
+    And the customer has requested a reschedule
+    And I am authenticated as admin
+    When I open the admin bookings page
+    And the admin rejects the customer's reschedule request
+    Then the reschedule request shows as rejected
+    And the booking time is unchanged

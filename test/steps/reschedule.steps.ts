@@ -3,8 +3,10 @@ import { Given, When, Then } from '../support/fixtures.js';
 import { sendPaymentWebhook, paymentIntentIdFromClientSecret } from '../support/stripe-mock.js';
 import {
   getBookingByEmail,
+  getBookingTimes,
   getManageToken,
   getRescheduleRequestByBookingId,
+  getRescheduleRequestDetail,
   getRescheduleRequestsByBookingId,
   insertConfirmedBooking,
   setBookingStatus,
@@ -133,4 +135,48 @@ When('the customer submits the reschedule request expecting a conflict', async (
 Then('the booking has no pending reschedule request', async () => {
   const pending = (await getRescheduleRequestsByBookingId(bookingId)).filter((r) => r.status === 'pending');
   expect(pending).toHaveLength(0);
+});
+
+// --- TC-RS-07/08: admin approve/reject via the UI ---
+
+// Booking times captured before a reject, to prove they stay unchanged.
+let bookingTimesBefore: { start_time: string; end_time: string };
+
+When('the customer has requested a reschedule', async ({ manageBookingPage, customerEmail }) => {
+  const token = (await getManageToken(customerEmail))!.manage_token;
+  await manageBookingPage.open(token);
+  await manageBookingPage.requestReschedule(nextWeekOpenDate());
+});
+
+When("the admin approves the customer's reschedule request", async ({ adminBookingsPage, customerEmail }) => {
+  await adminBookingsPage.selectBookingByEmail(customerEmail);
+  await adminBookingsPage.approvePendingReschedule();
+});
+
+When("the admin rejects the customer's reschedule request", async ({ adminBookingsPage, customerEmail }) => {
+  bookingTimesBefore = (await getBookingTimes(bookingId))!;
+  await adminBookingsPage.selectBookingByEmail(customerEmail);
+  await adminBookingsPage.rejectPendingReschedule();
+});
+
+Then('the reschedule request shows as approved', async ({ adminBookingsPage }) => {
+  await adminBookingsPage.expectRequestStatus('approved');
+});
+
+Then('the reschedule request shows as rejected', async ({ adminBookingsPage }) => {
+  await adminBookingsPage.expectRequestStatus('rejected');
+});
+
+Then('the booking time matches the approved request', async () => {
+  const request = await getRescheduleRequestDetail(bookingId);
+  const times = await getBookingTimes(bookingId);
+  expect(request?.status).toBe('approved');
+  expect(new Date(times!.start_time).getTime()).toBe(new Date(request!.requested_start_time).getTime());
+  expect(new Date(times!.end_time).getTime()).toBe(new Date(request!.requested_end_time).getTime());
+});
+
+Then('the booking time is unchanged', async () => {
+  const times = (await getBookingTimes(bookingId))!;
+  expect(new Date(times.start_time).getTime()).toBe(new Date(bookingTimesBefore.start_time).getTime());
+  expect(new Date(times.end_time).getTime()).toBe(new Date(bookingTimesBefore.end_time).getTime());
 });
