@@ -1,16 +1,26 @@
 import { test as base, createBdd } from 'playwright-bdd';
+import type { Page } from '@playwright/test';
 import { BookingPage } from '../pages/BookingPage.js';
 import { BookingConfirmationPage } from '../pages/BookingConfirmationPage.js';
 import { AdminLoginPage } from '../pages/AdminLoginPage.js';
 import { AdminBookingsPage } from '../pages/AdminBookingsPage.js';
+import { ManageBookingPage } from '../pages/ManageBookingPage.js';
+import { ProductOrderPage } from '../pages/ProductOrderPage.js';
+import { adminLogin, seedAdminAuthInBrowser } from './api.js';
 
 type Fixtures = {
   bookingPage: BookingPage;
   confirmationPage: BookingConfirmationPage;
   adminLoginPage: AdminLoginPage;
   adminBookingsPage: AdminBookingsPage;
+  manageBookingPage: ManageBookingPage;
+  productOrderPage: ProductOrderPage;
   /** Per-scenario unique customer email for data isolation. */
   customerEmail: string;
+  /** Admin access token (API login) for scenarios that drive admin actions via the API. */
+  adminToken: string;
+  /** A page that boots already authenticated as admin (skips the UI login screen). */
+  adminPage: Page;
 };
 
 export const test = base.extend<Fixtures>({
@@ -25,7 +35,14 @@ export const test = base.extend<Fixtures>({
   confirmationPage: async ({ page }, use) => use(new BookingConfirmationPage(page)),
   adminLoginPage: async ({ page }, use) => use(new AdminLoginPage(page)),
   adminBookingsPage: async ({ page }, use) => use(new AdminBookingsPage(page)),
+  manageBookingPage: async ({ page }, use) => use(new ManageBookingPage(page)),
+  productOrderPage: async ({ page }, use) => use(new ProductOrderPage(page)),
   customerEmail: async ({}, use) => use(`cust+${Date.now()}@test.local`),
+  adminToken: async ({}, use) => use(await adminLogin()),
+  adminPage: async ({ page }, use) => {
+    await seedAdminAuthInBrowser(page);
+    await use(page);
+  },
 });
 
 export const { Given, When, Then, Before, After, BeforeAll, AfterAll } = createBdd(test);
