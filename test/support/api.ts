@@ -100,6 +100,31 @@ export async function getAvailableSlots(date: string, duration: number): Promise
   return (body?.data ?? body)?.slots ?? [];
 }
 
+/** Create an availability block via the admin API; returns the created block (with id). */
+export async function createAvailabilityBlock(
+  token: string,
+  startTime: string,
+  endTime: string,
+  reason = 'e2e block',
+): Promise<{ id: number }> {
+  const res = await fetch(`${env.apiUrl}/availability/admin/blocks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ startTime, endTime, blockType: 'blocked', reason }),
+  });
+  if (!res.ok) throw new Error(`Create availability block failed: ${res.status} ${await res.text()}`);
+  const body = await res.json();
+  return body?.data ?? body;
+}
+
+/** Delete an availability block via the admin API (raw response, for missing-block negatives). */
+export async function deleteAvailabilityBlock(token: string, id: number): Promise<Response> {
+  return fetch(`${env.apiUrl}/availability/admin/blocks/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 /**
  * Seed an authenticated admin session into a browser page so the app boots logged in
  * (skips the UI login screen). Writes both tokens into localStorage via addInitScript,
