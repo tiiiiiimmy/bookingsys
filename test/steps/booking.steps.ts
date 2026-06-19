@@ -205,7 +205,7 @@ When('customer B attempts to book the same slot', async ({ customerEmail }) => {
     email: customerEmail,
     startTime: concurrencySlot.startTime,
     endTime: concurrencySlot.endTime,
-    serviceTypeId: 12,
+    serviceTypeId: BOOKABLE_SERVICE_TYPE_ID,
   });
   bookBody = await bookResponse.json().catch(() => ({}));
 });
