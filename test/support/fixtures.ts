@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { test as base, createBdd } from 'playwright-bdd';
 import type { Page } from '@playwright/test';
 import { BookingPage } from '../pages/BookingPage.js';
@@ -40,7 +41,7 @@ export const test = base.extend<Fixtures>({
   adminAvailabilityPage: async ({ page }, use) => use(new AdminAvailabilityPage(page)),
   manageBookingPage: async ({ page }, use) => use(new ManageBookingPage(page)),
   productOrderPage: async ({ page }, use) => use(new ProductOrderPage(page)),
-  customerEmail: async ({}, use) => use(`cust+${Date.now()}@test.local`),
+  customerEmail: async ({}, use) => use(`cust+${randomUUID()}@test.local`),
   adminToken: async ({}, use) => use(await adminLogin()),
   adminPage: async ({ page }, use) => {
     await seedAdminAuthInBrowser(page);
