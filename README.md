@@ -1,268 +1,249 @@
-# Psychic Magic — Psychic Consultation & Spell Product Site
+# Psychic Magic — End-to-End Test Suite
 
-An online business system for psychics and readers: **Psychic Reading appointments** and **spell product purchases**, both paid via Stripe. The brand site is [Psychic Magic](https://www.psychicmagic.site/), operated by New Zealand psychic Manon.
+> **You are on the `test/e2e` branch.** This branch carries the full **`test/`** automation tree on top of the
+> application code, so you can read, run, and review the whole test suite in one place. The application itself
+> ships from `main`; here, the tests are the main event.
+>
+> **Just want the tests?** Jump to [The Test Suite](#the-test-suite). Deep dive: [`test/README.md`](test/README.md).
 
-## Project Overview
+The system under test is [Psychic Magic](https://www.psychicmagic.site/) — an online business site for New Zealand
+psychic Manon, offering **Psychic Reading appointments** and **spell product purchases**, both paid via Stripe.
 
-### Business configuration (seed defaults; adjustable in admin)
+---
 
-- **Appointment services**: Psychic Reading (15 min $26 / 30 min $48 / 60 min $88)
-- **Spell products**: White Magic, Love Spell, Money Spell ($88 each, one-time checkout)
-- **Business hours**: Configure open days and time windows in admin (seed default: Mon–Thu 9:00–17:00)
-- **Payment**: Stripe online (appointments and product orders require payment first)
-- **Refunds**: Manual (admin decides case by case)
-- **Customer accounts**: No registration (guest checkout)
-- **Calendar**: In-app custom availability slots
+## What this branch adds
 
-### Features
+| Branch | Contents |
+|--------|----------|
+| `main` | Production frontend + backend only |
+| **`test/e2e`** (here) | The same app **plus** the complete `test/` tree: Playwright + playwright-bdd scenarios, page objects, DB/API helpers, run reports (**54 automated scenarios**) |
 
-**Customer-facing:**
-- Browse the homepage, About Manon, spell products, and Psychic Reading services
-- Choose Psychic Reading duration and book an available slot
-- Submit appointments or product orders without registering
-- Pay via Stripe and see real status on confirmation pages
-- Request reschedules via a secure manage link
-- Order White Magic / Love Spell / Money Spell from the homepage
+Everything test-related lives under [`test/`](test/). Application setup is summarized in
+[Running the app](#running-the-app-system-under-test) further down — but you do **not** need to start anything by
+hand to run the tests; the harness boots the backend and frontend for you.
 
-**Admin:**
-- View all appointments, product orders, and details in the dashboard
-- Manage appointments (reschedule, cancel, complete, no-show)
-- Mark paid product orders as fulfilled
-- Configure availability (business days and blocked periods)
-- View customer history
-- Review customer reschedule requests
+---
+
+## The System Under Test (what the tests exercise)
+
+A guest-checkout booking and product site. Understanding these flows makes the test coverage easy to follow.
+
+**Customer-facing**
+- Book a Psychic Reading (15 min $26 / 30 min $48 / 60 min $88) into an available slot, pay via Stripe.
+- Order a spell product — White Magic / Love Spell / Money Spell ($88 each, one-time checkout).
+- No registration (guest checkout); reschedule via a secure manage link.
+
+**Admin**
+- View appointments and product orders; manage status (reschedule, cancel, complete, no-show, fulfill).
+- Configure availability (business days, blocked periods); review customer reschedule requests.
+
+**Rules that matter to the tests**
+- Payment-first: appointments and orders only confirm after a successful Stripe webhook.
+- Double-booking is prevented by DB exclusive constraints.
+- Seed defaults: 3 services, business hours Mon–Thu 09:00–17:00, one admin user.
+
+---
+
+## The Test Suite
+
+### At a glance
+
+| | |
+|---|---|
+| **Total** | **54 automated scenarios** — Run #005: 54 passed / 0 failed / 1 xfail |
+| **Browser E2E** | **44** (`npm run test:e2e`) — real browser → API → DB |
+| **API / contract** | **10** (`npm run test:api`) — no browser; seed + forged webhooks / direct API asserts |
+| **Smoke** | **4** (`npm run test:smoke`) — one happy path per module |
+| **Stack** | Playwright + playwright-bdd (Gherkin) · TypeScript (ESM) · MySQL via `mysql2` · .NET 10 backend |
+| **What's real / mocked** | Real browser, real backend, real MySQL test DB · Stripe fully **mocked** (no external calls) |
+
+### What's covered
+
+Four business areas; every scenario asserts across **UI → API (webhook) → DB**:
+
+| Module | Scenarios | Anchor assertions |
+|---|---|---|
+| **Booking** | pay success/fail, bad webhook signature, multi-slot, confirmation polling, slot conflict, concurrency & hold expiry, form validation, availability edges | confirmation badge + `bookings.status` + `payments.status` |
+| **Reschedule** | manage-page states, duplicate/conflict requests, admin approve/reject, review edge cases | `booking_reschedule_requests.status` + `bookings` start/end |
+| **Product order** | per-product pay success, unknown product, failed/missing webhook stays pending, form validation | confirmation badge + `product_orders.status` |
+| **Admin** | login success/fail, session (route guard / refresh / invalid tokens / dual-tab logout), management (filters / detail / manual reschedule / availability) | redirects + list/detail fields + hours/blocks → public availability |
+
+Full human-readable catalog: [`test/doc/test-cases.md`](test/doc/test-cases.md). Design rationale:
+[`test/doc/test-design.md`](test/doc/test-design.md).
+
+### How it works
+
+```
+features/**/*.feature   Gherkin scenarios — what to test
+        │  bddgen
+steps/**/*.ts           Step definitions — Given / When / Then
+pages/*.ts              Page objects — data-testid selectors + actions
+support/*.ts            env, DB, Stripe mock, backend control, fixtures
+```
+
+- **Tests start the system, not you.** Playwright `webServer` launches a fresh .NET backend on `:5001` and reuses
+  (or starts) the Vite frontend on `:3000`; `globalSetup` runs `--migrate` + `--seed` once per run.
+- **Isolated DB.** `DB_NAME` must contain `test` (e.g. `bookingsys_test`) — `support/env.ts` refuses to run otherwise.
+  Each scenario uses a unique customer email and cleans up after itself.
+- **`data-testid` first.** Steps touch elements by `data-testid`; status badges expose `data-status`, so assertions
+  never couple to copy or styling.
+- **Stripe fully mocked.** Backend `STRIPE_FAKE_PAYMENTS=true` issues synthetic PaymentIntents; tests forge
+  webhooks signed with `STRIPE_WEBHOOK_SECRET` (`support/stripe-mock.ts`). One scenario sends a bad signature to
+  assert HTTP 400. The browser also blocks `stripe.com`. No external service is ever called.
+- **Serial by design.** Shared DB + competing slots → `workers: 1`, `fullyParallel: false`, `retries: 2`, 90s timeout.
+
+### Run it
+
+```bash
+cd test
+
+npm install
+npx playwright install chromium
+
+cp .env.test.example .env.test
+# Set DB_NAME (must contain "test"), DB_USER/PASSWORD, API_URL (port 5001),
+# STRIPE_WEBHOOK_SECRET (any self-consistent value), ADMIN_EMAIL/PASSWORD (match seed)
+
+# Make sure :5001 is free and MySQL is up, then:
+npm run test:regression   # Full: browser E2E + API (54)
+```
+
+| Command | Purpose | Count |
+|---|---|---|
+| `npm run test:regression` | Full regression (CI gate) | 54 |
+| `npm run test:e2e` | Browser E2E only (excludes `@api`) | 44 |
+| `npm run test:api` | API / contract only (`@api`) | 10 |
+| `npm run test:smoke` | `@smoke` happy paths | 4 |
+| `npm run test:e2e:ui` | Playwright UI mode | — |
+| `npm run test:report` | Open the last HTML report | — |
+
+> Stop any dev backend on `:5001` first — the tests run their own backend against the test DB. The `:3000`
+> frontend can stay up.
+
+### Tags
+
+- **`@api`** — backend integration peeled out of browser E2E (concurrency / hold expiry / availability contract).
+- **`@smoke`** — one happy path per module; the fast gate.
+- **`@fail`** — expected failure (xfail), e.g. TC-RS-10 (a known backend defect).
+
+Filter anything with `--grep` / `--grep-invert` by title or tag.
+
+### Reports
+
+Each run is captured as a numbered, dated report in [`test/doc/reports/`](test/doc/reports/), indexed by
+[`test/doc/test-report.md`](test/doc/test-report.md). `playwright.config.ts` emits `html`
+(`playwright-report/`), `junit` (`test-results/junit.xml`, for CI), and `list` (console); traces are kept on failure.
+
+**Known gaps:** TC-RS-10 (backend reschedule-approval race — xfail); TC-AD-11 business-hours `start>end`
+sub-case (backend does not validate; not automated).
+
+### CI (Azure Pipelines)
+
+[`azure-pipelines.yml`](azure-pipelines.yml) runs the suite on a self-hosted pool. Because the harness boots both
+servers and runs migrate+seed itself, CI only provisions runtimes, ensures the test DB exists, then runs the npm
+scripts. Stage `quality_gate` → `backend_build`, `frontend_build`, `api_tests` (DB `bookingsys_test_api`),
+`e2e_tests` (DB `bookingsys_test_e2e`). JUnit results are published; the HTML report is uploaded to Azure Blob.
+Details: [`test/README.md`](test/README.md#9-ci-azure-pipelines).
+
+### Read more
+
+- [`test/README.md`](test/README.md) — full suite guide (coverage, design, servers, data, layout, reports, CI)
+- [`test/doc/test-cases.md`](test/doc/test-cases.md) — every case, step by step, with status
+- [`test/doc/test-design.md`](test/doc/test-design.md) — design and trade-offs
+
+---
 
 ## Tech Stack
 
-- **Backend**: .NET 10 + ASP.NET Core + MySQL
-- **Frontend**: React (Vite)
-- **Payments**: Stripe
-- **Auth**: JWT
+| Area | Stack |
+|---|---|
+| Backend (SUT) | .NET 10 + ASP.NET Core + MySQL |
+| Frontend (SUT) | React (Vite) |
+| Payments | Stripe (mocked in tests) |
+| Auth | JWT |
+| Tests | Playwright + playwright-bdd + TypeScript (ESM), MySQL via `mysql2` |
 
 ## Project Structure
 
 ```
 bookingsys/
-├── backend/          # ASP.NET Core API server
-│   ├── Controllers/       # API controllers
-│   ├── Services/          # Business logic
-│   ├── Models/            # Request/response models
-│   ├── Middleware/        # Auth, error handling
+├── backend/          # ASP.NET Core API server (SUT)
+│   ├── Controllers/  Services/  Models/  Middleware/
 │   ├── Database/          # MySQL connection, migrations, seeding
-│   ├── Configuration/     # .env and config loading
-│   ├── src/database/      # SQL migrations and seed data
-│   ├── BookingSystem.Api.csproj
 │   └── Program.cs
-│
-├── frontend/         # React frontend
-│   ├── src/
-│   │   ├── components/      # UI components
-│   │   ├── pages/           # Pages (home, booking, product checkout, etc.)
-│   │   ├── services/        # API clients
-│   │   ├── hooks/           # Custom hooks
-│   │   ├── context/         # Context providers
-│   │   └── App.jsx          # App entry
-│   └── package.json
-│
-├── test/             # Playwright + BDD end-to-end tests
+├── frontend/         # React frontend (SUT)
+│   └── src/  components/  pages/  services/  hooks/  context/
+├── test/             # ◀ Playwright + BDD end-to-end tests (this branch)
+│   ├── features/         # Gherkin .feature files
+│   ├── steps/            # Step definitions
+│   ├── pages/            # Page objects
+│   ├── support/          # env, global-setup, backend, db, stripe-mock, fixtures
+│   ├── doc/              # test-design, test-cases, reports/
+│   └── playwright.config.ts
+├── azure-pipelines.yml
 └── README.md         # This file
 ```
 
-## Quick Start
+---
 
-### Prerequisites
+## Running the app (system under test)
 
-- .NET SDK 10.0
-- Node.js 18+ (frontend)
-- MySQL 8.0+
-- Stripe account (payments)
-
-### Setup
-
-#### 1. Backend
+You only need this to drive the app by hand — the test suite starts its own copies. Use a **separate, non-test**
+database here.
 
 ```bash
+# Backend
 cd backend
-
-# Restore .NET dependencies
 dotnet restore BookingSystem.Api.csproj
-
-# Configure environment
-cp .env.example .env
-# Edit .env with database and Stripe settings
-
-# Create MySQL database
-mysql -u root -p
-CREATE DATABASE bookingsys CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-\q
-
-# Run migrations
+cp .env.example .env                                            # set DB + Stripe
 dotnet run --project BookingSystem.Api.csproj -- --migrate
-
-# Seed data (Psychic Reading services, business hours, admin user)
 dotnet run --project BookingSystem.Api.csproj -- --seed
+dotnet watch run --project BookingSystem.Api.csproj            # → http://localhost:5000
 
-# Start backend
-dotnet watch run --project BookingSystem.Api.csproj
-```
-
-Backend runs at `http://localhost:5000`
-
-**Default admin credentials** (from `.env` `ADMIN_EMAIL` / `ADMIN_PASSWORD`; seed fallback if unset):
-- Email: `admin@massage.com`
-- Password: `admin123`
-- ⚠️ **Change the password immediately after first login!**
-
-#### 2. Frontend
-
-```bash
+# Frontend (new terminal)
 cd frontend
-
-# Install dependencies
 npm install
-
-# Configure environment
-cp .env.example .env
-# Set API URL and Stripe publishable key
-
-# Start dev server
-npm run dev
+cp .env.example .env                                            # set API URL + Stripe key
+npm run dev                                                     # → http://localhost:3000
 ```
 
-Frontend runs at `http://localhost:3000`
+**Default admin** (from `.env` `ADMIN_EMAIL` / `ADMIN_PASSWORD`; seed fallback if unset):
+`admin@massage.com` / `admin123` — ⚠️ change immediately after first login.
 
+**Manual access:** Home `/` · Booking `/booking` · Product checkout `/order?product=White%20Magic` ·
+Admin `/admin/login` → `/admin/dashboard`.
 
-## Testing
+---
 
+## API & Data Reference (what the tests assert against)
 
->
-> | Branch | Contents |
-> |--------|----------|
-> | **`main`** | Production frontend/backend |
-> | **`test/e2e-bdd-playwright`** | Full **`test/`** tree on top of the app: Playwright + playwright-bdd scenarios, page objects, DB/API helpers, run reports (~54 automated scenarios) |
->
-> To run tests locally or read implementations, check out the test branch:
->
-> ```bash
-> git fetch origin
-> git checkout test/e2e-bdd-playwright
-> ```
->
+### Endpoints
 
-### End-to-end automation (E2E)
+**Public:** `GET /health` · `GET /api/bookings/service-types` · `POST /api/bookings` · `GET /api/bookings/:id` ·
+`GET /api/bookings/manage/:token` · `POST /api/bookings/manage/:token/reschedule-request` ·
+`GET /api/availability/slots` · `POST /api/product-orders` · `GET /api/product-orders/:id` ·
+`POST /api/webhooks/stripe`
 
-The following applies to the `test/` directory on branch **`test/e2e-bdd-playwright`** (not present on `main`; see **Branch note** above).
-
-The `test/` suite uses **Playwright + playwright-bdd**: a real browser drives the frontend against a
-**real .NET backend** with direct **MySQL test DB** assertions. Stripe is fully mocked (backend
-`STRIPE_FAKE_PAYMENTS` + forged signed webhooks; the test browser blocks `stripe.com`). No external services are called.
-
-- **Layers**: **44 browser E2E** (`test:e2e`, UI→API→DB) + **10 API/contract** scenarios
-  (`test:api`, no browser; DB seed + forged webhooks / direct API asserts); `test:regression` runs all 54.
-- **Coverage** (UI → API → DB):
-  - Booking (pay success/fail, bad signature, multi-slot, confirmation polling, slot conflict, concurrency & hold expiry, form validation, availability edges)
-  - Reschedule (manage page states, conflict requests, admin UI approve/reject, review edge cases)
-  - Product orders (White Magic / Love Spell / Money Spell success, unknown product, unpaid stays pending, form validation)
-  - Admin (login, session guard/refresh/dual-tab logout, filters/detail/manual reschedule/availability management)
-- **Run**:
-  ```bash
-  cd test
-  npm install && npx playwright install chromium
-  cp .env.test.example .env.test   # Fill in locally; API_URL port is 5001
-  npm run test:regression          # Full: E2E + API (54)
-  npm run test:e2e                 # Browser E2E only (44)
-  npm run test:api                 # API/contract only (10, fastest)
-  npm run test:smoke               # Core @smoke scenarios (4)
-  ```
-  > Stop any dev backend on the test port before running (tests start their own backend on `bookingsys_test`).
-- **Docs**: Suite guide [`test/README.md`](test/README.md), case list [`test/doc/test-cases.md`](test/doc/test-cases.md), reports [`test/doc/reports/`](test/doc/reports/).
-- **Known gaps**: TC-RS-10 (backend reschedule approval race, xfail); TC-AD-11 business-hours `start>end` sub-case (backend does not validate; not automated).
-
-
-
-## API Endpoints
-
-### Public (implemented)
-- `GET /health` — Health check
-- `GET /api/bookings/service-types` — Bookable services (Psychic Reading durations)
-- `POST /api/bookings` — Create booking
-- `GET /api/bookings/:id` — Booking detail
-- `GET /api/bookings/manage/:token` — Customer manage page (reschedule entry)
-- `POST /api/bookings/manage/:token/reschedule-request` — Submit reschedule request
-- `GET /api/availability/slots` — Available slots
-- `POST /api/product-orders` — Create spell product order
-- `GET /api/product-orders/:id` — Product order detail
-- `POST /api/webhooks/stripe` — Stripe webhook
-
-### Admin (implemented)
-- `POST /api/admin/auth/login` — Admin login
-- `POST /api/admin/auth/refresh` — Refresh token
-- `GET /api/admin/auth/me` — Current admin
-- `GET /api/admin/dashboard/stats`
-- `GET /api/admin/bookings`
-- `GET /api/admin/bookings/:id`
-- `PATCH /api/admin/bookings/:id/status`
-- `POST /api/admin/bookings/:id/reschedule`
-- `GET /api/admin/customers`
-- `GET /api/admin/customers/:id`
-- `POST /api/admin/reschedule-requests/:id/approve`
-- `POST /api/admin/reschedule-requests/:id/reject`
-- `GET /api/admin/product-orders` — Product order list
-- `PATCH /api/admin/product-orders/:id/fulfill` — Mark product order fulfilled
-
-## Database Schema
+**Admin:** `POST /api/admin/auth/login` · `/refresh` · `GET /api/admin/auth/me` · `GET /api/admin/dashboard/stats` ·
+`GET|PATCH /api/admin/bookings[/:id[/status]]` · `POST /api/admin/bookings/:id/reschedule` ·
+`GET /api/admin/customers[/:id]` · `POST /api/admin/reschedule-requests/:id/approve|reject` ·
+`GET /api/admin/product-orders` · `PATCH /api/admin/product-orders/:id/fulfill`
 
 ### Core tables
-- `customers` — Customer records
-- `bookings` — Psychic Reading appointments (exclusive constraints prevent double booking)
-- `payments` — Stripe payment records (bookings)
-- `product_orders` — Spell product orders (White Magic / Love Spell / Money Spell)
-- `availability_blocks` — Blocked time ranges
-- `business_hours` — Weekly business hours
-- `admins` — Admin users
-- `service_types` — Appointment services and pricing
 
+`customers` · `bookings` (exclusive constraints prevent double booking) · `payments` · `product_orders` ·
+`availability_blocks` · `business_hours` · `admins` · `service_types`
 
-
-### Manual access
-- **Customer home**: http://localhost:3000
-- **Book Psychic Reading**: http://localhost:3000/booking
-- **Spell product checkout**: http://localhost:3000/order?product=White%20Magic
-- **Admin login**: http://localhost:3000/admin/login
-- **Admin dashboard**: http://localhost:3000/admin/dashboard
-
-
-
-## Security
-
-- ✅ Never commit `.env` to version control
-- ✅ Change the default admin password after first login
-- ✅ Use strong JWT secrets in production
-- ✅ Enable HTTPS in production (Stripe requirement)
-- ✅ Use Stripe test keys during development
+---
 
 ## Troubleshooting
 
-### Backend cannot connect to database
-- Ensure MySQL is running
-- Check database credentials in `.env`
-- Confirm database `bookingsys` exists
-
-### Frontend cannot reach backend
-- Ensure the backend is running
-- Check `VITE_API_URL`
-- Check CORS settings
-
-### Admin cannot log in
-- Run `dotnet run --project BookingSystem.Api.csproj -- --seed`
-- Use admin email/password from `.env` (seed default `admin@massage.com` / `admin123`)
-- Check backend logs for errors
+- **Backend can't reach DB** — MySQL running? credentials in `.env`? database exists?
+- **Frontend can't reach backend** — backend up? `VITE_API_URL` set? CORS OK?
+- **Admin can't log in** — re-run `--seed`; use the `.env` admin credentials.
+- **Tests fail to start a backend** — free port `:5001`; confirm `DB_NAME` contains `test`; MySQL reachable.
+- **SPA blank after long HMR** — restart the `:3000` dev server (see Run #003 §4).
 
 ## License
 
-ISC
-
-## Support
-
-See also:
-- Backend README: [backend/README.md](backend/README.md)
+ISC — see also [backend/README.md](backend/README.md).

@@ -144,25 +144,58 @@ npm run test:report       # Open last HTML report
 
 ```
 test/
-├── README.md                 This file
-├── package.json              Dependencies and scripts
-├── playwright.config.ts      webServer / globalSetup / serial / retries / proxy bypass
-├── tsconfig.json             TS (ESM, moduleResolution: Bundler)
-├── .env.test(.example)       Env (secrets gitignored)
-├── features/                 Gherkin (.feature)
-│   ├── booking/  booking.feature, concurrency.feature, reschedule.feature
-│   ├── order/    product-order.feature
-│   └── admin/    login.feature, session.feature, management.feature
-├── steps/                    Step definitions (*.steps.ts)
-├── pages/                    Page objects (extend BasePage)
-├── support/                  env, global-setup, backend, db, stripe-mock, api, fixtures, …
-└── doc/                      Test documentation
-    ├── test-design.md
-    ├── test-cases.md
-    ├── test-implementation-plan.md
-    ├── test-implementation-plan-2.0.md
-    ├── test-report.md        Report index
-    └── reports/              Per-run reports (run-NNN-YYYY-MM-DD.md)
+├── README.md                       # This file — the suite guide
+├── package.json                    # Scripts: test:e2e / test:api / test:smoke / test:regression / test:e2e:ui / test:report
+├── playwright.config.ts            # Single chromium project; webServer (backend :5001 + Vite :3000), globalSetup, serial, retries:2, NO_PROXY bypass, html/junit/list reporters
+├── tsconfig.json                   # TypeScript (ESM, moduleResolution: Bundler)
+├── .env.test(.example)             # Test env: DB_*, API_URL (:5001), STRIPE_*, ADMIN_* — real .env.test is gitignored
+├── .gitignore
+├── features/                       # playwright-bdd Gherkin (.feature) — what to test
+│   ├── booking/
+│   │   ├── booking.feature         # TC-BK-* pay success/fail, bad signature, multi-slot, confirmation polling, form validation, availability edges
+│   │   ├── concurrency.feature     # @api slot conflict, concurrent holds, hold expiry
+│   │   └── reschedule.feature      # TC-RS-* manage-page states, duplicate/conflict requests, admin approve/reject
+│   ├── order/
+│   │   └── product-order.feature   # TC-PO-* per-product success, unknown product, unpaid stays pending, form validation
+│   └── admin/
+│       ├── login.feature           # TC-AD-* admin login success / failure
+│       ├── session.feature         # Route guard, token refresh, invalid tokens, dual-tab logout
+│       └── management.feature      # Filters, detail, manual reschedule, availability management (+ negatives)
+├── steps/                          # Step definitions (Given/When/Then) — call page objects only
+│   ├── booking.steps.ts            # Booking flow + forged Stripe webhook + DB assertions
+│   ├── reschedule.steps.ts         # Reschedule request / admin approve-reject flow
+│   ├── order.steps.ts              # Product-order flow via ProductOrderPage
+│   ├── admin.steps.ts              # Admin login / session steps
+│   ├── admin-management.steps.ts   # Admin filters / detail / manual reschedule / availability
+│   └── common.steps.ts            # After / AfterAll: per-scenario cleanup + close DB pool
+├── pages/                          # Page Object Model — data-testid selectors + actions
+│   ├── BasePage.ts                 # Shared helpers: fill() by testId, waits, navigation
+│   ├── BookingPage.ts              # Select service / slot(s), fill customer, submit & capture payment
+│   ├── BookingConfirmationPage.ts  # Confirmation badge (data-status) + status polling
+│   ├── ManageBookingPage.ts        # Customer manage link: pick date/slot, submit reschedule request
+│   ├── ProductOrderPage.ts         # Spell-product checkout: fill customer, submit & capture payment
+│   ├── AdminLoginPage.ts           # Admin login form
+│   ├── AdminBookingsPage.ts        # Admin bookings list/detail, filters, manual reschedule
+│   └── AdminAvailabilityPage.ts    # Business hours + blocked-period management
+├── support/                        # Harness & helpers
+│   ├── env.ts                      # Loads .env.test; refuses non-"test" DB_NAME; backendProcessEnv()
+│   ├── global-setup.ts             # Once per run: dotnet --migrate then --seed against the test DB
+│   ├── backend.ts                  # runBackendCommand(--migrate/--seed), waitForUrl() readiness probe
+│   ├── fixtures.ts                 # Extends test with page objects + unique email + stripe.com route.abort(); re-exports Given/When/Then/Before/After
+│   ├── db.ts                       # mysql2 pool + direct asserts/cleanup (getBookingByEmail, cleanupCustomer, …)
+│   ├── api.ts                      # API wrappers: adminLogin, getAvailableSlots, bookSlotViaApi, approve/reject, availability blocks
+│   ├── stripe-mock.ts              # Forge signed / unsigned Stripe webhooks (payment_intent.succeeded|failed)
+│   ├── seed.ts                     # Per-scenario seeding: confirmed / pending booking next week
+│   ├── dates.ts                    # Date helpers: mondayOf, nextWeekOpenDate, findNextWeekSlot
+│   └── constants.ts                # BOOKABLE_SERVICE_TYPE_ID, UI/DB timeouts
+├── doc/                            # Test documentation
+│   ├── test-design.md              # Strategy, layers, trade-offs
+│   ├── test-cases.md               # Human-readable case catalog (TC-* with steps + status)
+│   ├── test-implementation-plan.md
+│   ├── test-implementation-plan-2.0.md
+│   ├── test-report.md              # Report index
+│   └── reports/                    # Per-run reports (run-NNN-YYYY-MM-DD.md)
+└── .features-gen/                  # bddgen output — gitignored; regenerated before every run
 ```
 
 ---
